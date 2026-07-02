@@ -19,6 +19,7 @@ from fastapi import HTTPException
 
 app = FastAPI(title="Mission Control Dashboard")
 STATIC_DIR = Path("/home/michael/dashboard/static")
+DASHBOARD_DIR = Path(__file__).resolve().parent
 SUBJECTS_DIR = Path("/home/michael/.hermes/subjects")
 PROFILES_DIR = Path("/home/michael/.hermes/profiles")
 DB_PATH = Path(os.environ.get("AGENT_LOG_DB", "/home/michael/.hermes/agent-logs.db"))
@@ -218,6 +219,23 @@ def backup_subjects(message: str) -> dict:
         res = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(SUBJECTS_DIR), check=True, capture_output=True, text=True)
         h = res.stdout.strip()
         return {"commit": h, "message": message}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def backup_dashboard(message: str) -> dict:
+    try:
+        subprocess.run(["git", "add", "-A"], cwd=str(DASHBOARD_DIR), check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", message, "--allow-empty"], cwd=str(DASHBOARD_DIR), check=True, capture_output=True)
+        res = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(DASHBOARD_DIR), check=True, capture_output=True, text=True)
+        h = res.stdout.strip()
+        pushed = False
+        try:
+            subprocess.run(["git", "push"], cwd=str(DASHBOARD_DIR), check=True, capture_output=True)
+            pushed = True
+        except Exception:
+            pushed = False
+        return {"commit": h, "message": message, "pushed": pushed}
     except Exception as exc:
         return {"error": str(exc)}
 
@@ -606,6 +624,35 @@ def backup_history():
             parts = line.split("|", 2)
             if len(parts) == 3:
                 history.append({"commit": parts[0], "date": parts[1], "message": parts[2]})
+        return history
+    except Exception:
+        return []
+
+
+@app.post("/api/backup/dashboard")
+def manual_dashboard_backup():
+    result = backup_dashboard("manual frontend backup")
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result
+
+
+@app.get("/api/backup/dashboard/history")
+def dashboard_backup_history():
+    try:
+        out = subprocess.run(
+            ["git", "log", "--pretty=format:%H|%ad|%s", "--date=iso", "-n", "20"],
+            cwd=str(DASHBOARD_DIR),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        lines = [line for line in out.stdout.splitlines() if line.strip()]
+        history = []
+        for line in lines:
+            parts = line.split("|")
+            if len(parts) >= 3:
+                history.append({"commit": parts[0], "date": parts[1], "message": "|".join(parts[2:])})
         return history
     except Exception:
         return []
