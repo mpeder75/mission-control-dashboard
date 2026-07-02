@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141416;
+    --surface2: #1c1c1f;
+    --surface3: #242428;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --text2: #9e9d96;
+    --text3: #5c5b56;
+    --accent: #e8521a;
+    --accent2: rgba(232,82,26,0.15);
+    --green: #4caf7d;
+    --green2: rgba(76,175,125,0.15);
+    --blue: #4a9eff;
+    --blue2: rgba(74,158,255,0.12);
+    --purple: #9b7fe8;
+    --purple2: rgba(155,127,232,0.12);
+    --yellow: #e8b84a;
+    --yellow2: rgba(232,184,74,0.12);
+    --red: #e85454;
+    --red2: rgba(232,84,84,0.12);
+    --radius: 10px;
+    --sidebar: 220px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 18px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .gateway-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--green);
+    margin-top: 6px;
+  }
+
+  .gateway-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .sidebar-section {
+    padding: 14px 12px 4px;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    padding: 0 4px;
+    margin-bottom: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 1px;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent2); color: var(--accent); }
+
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+
+  .agent-list { padding: 8px 12px 16px; }
+
+  .agent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 7px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .agent-item:hover { background: var(--surface2); }
+
+  .agent-left { display: flex; align-items: center; gap: 8px; }
+
+  .agent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .agent-name { font-size: 12.5px; color: var(--text2); }
+
+  .agent-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-lead { background: var(--accent2); color: var(--accent); }
+  .badge-ready { background: var(--green2); color: var(--green); }
+  .badge-build { background: var(--yellow2); color: var(--yellow); }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .topbar {
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+
+  .page-title { font-size: 16px; font-weight: 500; }
+  #currentTime { color: var(--text) !important; }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* OVERVIEW */
+  .welcome-banner {
+    background: linear-gradient(135deg, var(--surface2), var(--surface3));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .welcome-banner::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  .welcome-name { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
+  .welcome-date { font-size: 13px; color: var(--text2); margin-bottom: 12px; }
+
+  .welcome-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .tag-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-icon {
+    font-size: 20px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+
+  .stat-num { font-size: 28px; font-weight: 600; }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px;
+  }
+
+  .activity-agent { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+  .activity-text { font-size: 13px; color: var(--text); margin-top: 1px; }
+  .activity-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .status-badge {
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .status-completed { background: var(--green2); color: var(--green); }
+  .status-failed { background: var(--red2); color: var(--red); }
+
+  /* UPLOAD PAGE */
+  .upload-area {
+    border: 2px dashed var(--border2);
+    border-radius: 14px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 20px;
+  }
+
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--accent);
+    background: var(--accent2);
+  }
+
+  .upload-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+  .upload-title { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .upload-sub { font-size: 13px; color: var(--text2); }
+
+  .subject-select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    width: 100%;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+  }
+
+  .pipeline-steps {
+    display: flex;
+    gap: 0;
+    margin: 20px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .pipeline-step {
+    flex: 1;
+    padding: 16px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+  }
+
+  .pipeline-step:last-child { border-right: none; }
+  .pipeline-step-icon { font-size: 20px; margin-bottom: 6px; }
+  .pipeline-step-name { font-size: 12px; font-weight: 500; }
+  .pipeline-step-role { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* CHAT PAGE */
+  .chat-layout { display: grid; grid-template-columns: 180px 1fr; gap: 16px; height: calc(100vh - 130px); }
+
+  .chat-agents {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow-y: auto;
+  }
+
+  .chat-agent-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .chat-agent-item:hover { background: var(--surface2); }
+  .chat-agent-item.active { background: var(--accent2); }
+
+  .chat-agent-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+
+  .chat-agent-name { font-size: 13px; font-weight: 500; }
+  .chat-agent-role { font-size: 11px; color: var(--text2); }
+
+  .chat-window {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg { display: flex; gap: 10px; max-width: 75%; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+    background: var(--surface3); color: var(--text2);
+  }
+
+  .msg-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .msg.user .msg-bubble { background: var(--accent); border-color: var(--accent); color: white; }
+
+  .chat-input-area {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    min-height: 42px;
+    max-height: 120px;
+  }
+
+  .chat-input:focus { border-color: var(--accent); }
+
+  /* LIBRARY */
+  .library-layout { display: grid; grid-template-columns: 240px 1fr; gap: 16px; }
+
+  .library-sidebar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .library-file {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .library-file:hover { background: var(--surface2); }
+  .library-file.active { background: var(--accent2); }
+
+  .library-file-name { font-size: 13px; font-weight: 500; }
+  .library-file-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .library-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    overflow-y: auto;
+    max-height: calc(100vh - 150px);
+  }
+
+  .md-h1 { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: var(--accent); }
+  .md-h2 { font-size: 17px; font-weight: 500; margin: 20px 0 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .md-h3 { font-size: 15px; font-weight: 500; margin: 16px 0 8px; color: var(--text2); }
+  .md-p { font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+  .md-ul { padding-left: 20px; margin-bottom: 12px; }
+  .md-li { font-size: 14px; line-height: 1.6; margin-bottom: 4px; }
+
+  /* QUIZ */
+  .quiz-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .quiz-q { font-size: 16px; font-weight: 500; margin-bottom: 20px; line-height: 1.5; }
+
+  .quiz-option {
+    padding: 12px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 14px;
+  }
+
+  .quiz-option:hover { border-color: var(--accent); background: var(--accent2); }
+  .quiz-option.correct { border-color: var(--green); background: var(--green2); color: var(--green); }
+  .quiz-option.wrong { border-color: var(--red); background: var(--red2); color: var(--red); }
+
+  .progress-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .progress-bar-wrap {
+    background: var(--surface3);
+    border-radius: 4px;
+    height: 6px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+    transition: width 0.4s;
+  }
+
+  /* PLANNER */
+  .planner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .day-col {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .day-col.today { border: 2px solid var(--accent); }
+
+  .day-col-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .day-col.today .day-col-label { color: var(--accent); }
+
+  .day-class-badge {
+    border-radius: 6px;
+    padding: 4px 5px;
+    font-size: 10px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .day-no-class {
+    font-size: 9.5px;
+    color: var(--text3);
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+
+  .day-items { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+  .day-task {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    background: var(--surface3);
+    border-radius: 6px;
+    padding: 5px 6px;
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+
+  .day-task.completed { opacity: 0.55; }
+  .day-task.completed .day-task-title { text-decoration: line-through; color: var(--text3); }
+
+  .day-task-check {
+    width: 13px; height: 13px; margin-top: 1px; flex-shrink: 0; cursor: pointer;
+    accent-color: var(--green);
+  }
+
+  .day-task-actions { display: flex; gap: 3px; margin-left: auto; flex-shrink: 0; }
+  .day-task-actions button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 10px; padding: 0; }
+
+  .day-add-btn {
+    margin-top: 6px;
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--border2);
+    color: var(--text3);
+    border-radius: 8px;
+    padding: 5px;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+
+  .day-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .deadline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .deadline-item:last-child { border-bottom: none; }
+
+  .deadline-date {
+    background: var(--accent2);
+    color: var(--accent);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 52px;
+    flex-shrink: 0;
+  }
+
+  .deadline-course { font-size: 13px; font-weight: 500; }
+  .deadline-type { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* AGENTS PAGE */
+  .agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+
+  .agent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .agent-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+  .agent-avatar-lg {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600;
+  }
+
+  .agent-card-name { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+  .agent-card-role { font-size: 11px; color: var(--text3); }
+
+  .agent-stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .agent-stat:last-child { border-bottom: none; }
+  .agent-stat-label { color: var(--text3); }
+  .agent-stat-val { font-weight: 500; }
+
+  .live-badge {
+    font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 4px;
+    background: var(--green2); color: var(--green); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .standby-badge {
+    font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 4px;
+    background: var(--yellow2); color: var(--yellow); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* NOTIFICATIONS */
+  .notif {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    max-width: 300px;
+    z-index: 100;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.3s, opacity 0.3s;
+  }
+
+  .notif.show { transform: translateY(0); opacity: 1; }
+  .notif-title { font-weight: 600; margin-bottom: 4px; }
+  .notif-body { color: var(--text2); font-size: 12px; }
+
+  input[type=file] { display: none; }
+
+  .nav-badge {
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    margin-left: auto;
+    min-width: 18px;
+    text-align: center;
+    display: none;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-title { font-size: 15px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+.library-content table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+.library-content th { background:var(--surface3); color:var(--text2); padding:8px 12px; text-align:left; border:1px solid var(--border2); font-weight:600; }
+.library-content td { padding:8px 12px; border:1px solid var(--border); color:var(--text); }
+.library-content tr:nth-child(even) { background:var(--surface2); }
+.library-content code { background:var(--surface3); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:12px; color:var(--accent); }
+.library-content pre { background:var(--surface3); border:1px solid var(--border2); border-radius:8px; padding:16px; overflow-x:auto; margin:12px 0; }
+.library-content pre code { background:none; padding:0; color:var(--text); font-size:13px; }
+.library-content blockquote { border-left:3px solid var(--accent); padding-left:12px; color:var(--text2); margin:12px 0; }
+.library-content h1 { font-size:22px; font-weight:600; color:var(--accent); margin:24px 0 12px; }
+.library-content h2 { font-size:18px; font-weight:500; margin:20px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.library-content h3 { font-size:15px; font-weight:500; margin:16px 0 8px; color:var(--text2); }
+.library-content p { font-size:14px; line-height:1.8; margin:10px 0; }
+.library-content ul, .library-content ol { padding-left:20px; margin:10px 0; }
+.library-content li { font-size:14px; line-height:1.7; margin:4px 0; }
+.library-content strong { color:var(--text); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;">M</div>
+      <div>
+        <div class="logo-title">Mission Control</div>
+        <div class="logo-sub">AI Student Companion</div>
+      </div>
+    </div>
+    <div class="gateway-badge" id="gatewayBadge">
+      <div class="gateway-dot"></div>
+      <span>Checking...</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Workspace</div>
+    <div class="nav-item active" onclick="showPage('overview', this)">
+      <span class="nav-icon">⚡</span> Overview
+    </div>
+    <div class="nav-item" onclick="showPage('agents', this)">
+      <span class="nav-icon">🤖</span> Agents
+    </div>
+    <div class="nav-item" onclick="showPage('chat', this)">
+      <span class="nav-icon">💬</span> Chat
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Study</div>
+    <div class="nav-item" onclick="showPage('upload', this)">
+      <span class="nav-icon">📤</span> Upload
+    </div>
+    <div class="nav-item" onclick="showPage('library', this)">
+      <span class="nav-icon">📚</span> Library
+      <span class="nav-badge" id="libraryBadge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('quiz', this)">
+      <span class="nav-icon">✏️</span> Practice
+      <span class="nav-badge" id="practiceBadge">0</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Plan</div>
+    <div class="nav-item" onclick="showPage('planner', this)">
+      <span class="nav-icon">📅</span> Planner
+    </div>
+  </div>
+
+  <div class="agent-list" style="margin-top:auto;">
+    <div class="sidebar-label" style="padding:0 8px;margin-bottom:8px;">Agents</div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--accent)"></div>
+        <span class="agent-name">Bill</span>
+      </div>
+      <span class="agent-badge badge-lead">Lead</span>
+    </div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--blue)"></div>
+        <span class="agent-name">Vault</span>
+      </div>
+      <span class="agent-badge badge-ready">Ready</span>
+    </div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--green)"></div>
+        <span class="agent-name">Scholar</span>
+      </div>
+      <span class="agent-badge badge-ready">Ready</span>
+    </div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--purple)"></div>
+        <span class="agent-name">Quizmaster</span>
+      </div>
+      <span class="agent-badge badge-ready">Ready</span>
+    </div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--yellow)"></div>
+        <span class="agent-name">Planner</span>
+      </div>
+      <span class="agent-badge badge-ready">Ready</span>
+    </div>
+    <div class="agent-item">
+      <div class="agent-left">
+        <div class="agent-dot" style="background:var(--red)"></div>
+        <span class="agent-name">Dev</span>
+      </div>
+      <span class="agent-badge badge-build">Build</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Overview</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="font-size:12px;color:var(--text3);" id="currentTime"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW PAGE -->
+    <div id="page-overview" class="page active">
+      <div class="welcome-banner">
+        <div class="welcome-name">Welcome back, Michael</div>
+        <div class="welcome-date" id="welcomeDate"></div>
+        <div class="welcome-tags">
+          <div class="tag"><div class="tag-dot" style="background:var(--green)"></div>Gateway online</div>
+          <div class="tag"><div class="tag-dot" style="background:var(--blue)"></div>SSH tunnel ready</div>
+          <div class="tag"><div class="tag-dot" style="background:var(--accent)"></div>6 agents loaded</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:16px;">
+          <button class="btn" style="padding:8px 16px;font-size:13px;" onclick="backupNow()">💾 Lav backup nu</button>
+          <span style="font-size:12px;color:var(--text3);" id="lastBackupLabel"></span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📁</div>
+          <div class="stat-num" id="statSubjects">0</div>
+          <div class="stat-label">Subjects</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-num" id="statNotes">0</div>
+          <div class="stat-label">Note files</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-num" id="statQuizzes">0</div>
+          <div class="stat-label">Quizzes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-num" id="statTasks">0</div>
+          <div class="stat-label">Agent tasks</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Recent activity <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="loadActivity()">Refresh</button></div>
+          <div id="activityList">
+            <div class="empty-state" style="padding:24px;">
+              <div class="empty-icon">📋</div>
+              <div class="empty-title">No activity yet</div>
+              <div class="empty-sub">Agent tasks will appear here</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Agent breakdown</div>
+          <div id="agentBreakdown">
+            <div style="font-size:13px;color:var(--text2);padding:8px 0;">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENTS PAGE -->
+    <div id="page-agents" class="page">
+      <div class="agents-grid" id="agentsGrid">
+        <!-- populated by JS -->
+      </div>
+      <div class="card">
+        <div class="card-title">Recent agent activity</div>
+        <div id="agentsActivity">Loading...</div>
+      </div>
+    </div>
+
+    <!-- CHAT PAGE -->
+    <div id="page-chat" class="page">
+      <div class="chat-layout">
+        <div class="chat-agents">
+          <div class="chat-agent-item active" onclick="selectAgent('Bill', 'Coordinator', '#e8521a', this)">
+            <div class="chat-agent-avatar" style="background:var(--accent2);color:var(--accent);">B</div>
+            <div>
+              <div class="chat-agent-name">Bill</div>
+              <div class="chat-agent-role">Coordinator</div>
+            </div>
+          </div>
+          <div class="chat-agent-item" onclick="selectAgent('Vault', 'File Librarian', '#4a9eff', this)">
+            <div class="chat-agent-avatar" style="background:var(--blue2);color:var(--blue);">V</div>
+            <div>
+              <div class="chat-agent-name">Vault</div>
+              <div class="chat-agent-role">File Librarian</div>
+            </div>
+          </div>
+          <div class="chat-agent-item" onclick="selectAgent('Scholar', 'Notes Specialist', '#4caf7d', this)">
+            <div class="chat-agent-avatar" style="background:var(--green2);color:var(--green);">S</div>
+            <div>
+              <div class="chat-agent-name">Scholar</div>
+              <div class="chat-agent-role">Notes Specialist</div>
+            </div>
+          </div>
+          <div class="chat-agent-item" onclick="selectAgent('Quizmaster', 'Quiz Specialist', '#9b7fe8', this)">
+            <div class="chat-agent-avatar" style="background:var(--purple2);color:var(--purple);">Q</div>
+            <div>
+              <div class="chat-agent-name">Quizmaster</div>
+              <div class="chat-agent-role">Quiz Specialist</div>
+            </div>
+          </div>
+          <div class="chat-agent-item" onclick="selectAgent('Planner', 'Schedule Manager', '#e8b84a', this)">
+            <div class="chat-agent-avatar" style="background:var(--yellow2);color:var(--yellow);">P</div>
+            <div>
+              <div class="chat-agent-name">Planner</div>
+              <div class="chat-agent-role">Schedule Manager</div>
+            </div>
+          </div>
+          <div class="chat-agent-item" onclick="selectAgent('Dev', 'Infrastructure', '#e85454', this)">
+            <div class="chat-agent-avatar" style="background:var(--red2);color:var(--red);">D</div>
+            <div>
+              <div class="chat-agent-name">Dev</div>
+              <div class="chat-agent-role">Infrastructure</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-window">
+          <div class="chat-header">
+            <div>
+              <div style="font-size:15px;font-weight:500;" id="chatAgentName">Bill</div>
+              <div style="font-size:12px;color:var(--text3);" id="chatAgentRole">Coordinator</div>
+            </div>
+            <div class="live-badge">Live</div>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="msg">
+              <div class="chat-agent-avatar msg-avatar" style="background:var(--accent2);color:var(--accent);width:28px;height:28px;">B</div>
+              <div class="msg-bubble">Hi Michael! I'm Bill, your study coordinator. Send me a file or ask me to help with notes, quizzes, or your schedule.</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Message Bill..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+            <button class="btn" onclick="sendChatMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD PAGE -->
+    <div id="page-upload" class="page">
+      <div class="pipeline-steps">
+        <div class="pipeline-step"><div class="pipeline-step-icon">🗄️</div><div class="pipeline-step-name">Vault</div><div class="pipeline-step-role">Inventory</div></div>
+        <div class="pipeline-step"><div class="pipeline-step-icon">📖</div><div class="pipeline-step-name">Scholar</div><div class="pipeline-step-role">Notes</div></div>
+        <div class="pipeline-step"><div class="pipeline-step-icon">🧠</div><div class="pipeline-step-name">Quizmaster</div><div class="pipeline-step-role">Quiz</div></div>
+        <div class="pipeline-step"><div class="pipeline-step-icon">📅</div><div class="pipeline-step-name">Planner</div><div class="pipeline-step-role">Dates</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Fag</div>
+          <select class="subject-select" id="subjectSelect" style="margin:0;">
+            <option value="">Vælg eksisterende fag...</option>
+          </select>
+          <input type="text" id="subjectNew" placeholder="Eller skriv nyt fagnavn..." style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;width:100%;margin-top:8px;outline:none;font-family:inherit;" />
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Session navn</div>
+          <input type="text" id="sessionName" placeholder="F.eks. Session 3 - Docker Basics" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;width:100%;outline:none;font-family:inherit;" />
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">Dette bliver notefiltens navn i Library</div>
+        </div>
+      </div>
+
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title" id="uploadTitle">Træk en fil hertil eller klik for at vælge</div>
+        <div class="upload-sub">PDF, DOCX, Markdown og tekstfiler understøttes</div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.docx,.md,.txt,.pptx" onchange="fileSelected(event)" />
+
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+        <button class="btn" onclick="startPipeline()" id="startBtn">Start pipeline</button>
+        <div style="font-size:13px;color:var(--text3);" id="selectedFile">Ingen fil valgt</div>
+      </div>
+
+      <div id="uploadStatus" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- LIBRARY PAGE -->
+    <div id="page-library" class="page">
+      <div class="library-layout">
+        <div class="library-sidebar" id="libraryFiles">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Fag & Noter</span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="loadLibrary()">↻</button>
+          </div>
+          <div class="empty-state" style="padding:24px 14px;">
+            <div class="empty-sub">Ingen noter endnu. Upload en fil for at komme i gang.</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0;flex:1;overflow:hidden;">
+          <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0;" id="libraryToolbar" style="display:none;">
+            <span style="font-size:13px;color:var(--text2);flex:1;" id="libraryCurrentFile"></span>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="backupNow()">💾 Backup nu</button>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="startEditNote()" id="editNoteBtn">✏️ Rediger</button>
+            <button class="btn" style="padding:6px 12px;font-size:12px;background:var(--red);" onclick="confirmDeleteNote()" id="deleteNoteBtn">🗑️ Slet note</button>
+          </div>
+          <div class="library-content" id="libraryContent" style="flex:1;overflow-y:auto;">
+            <div class="empty-state">
+              <div class="empty-icon">📚</div>
+              <div class="empty-title">Vælg en notefil</div>
+              <div class="empty-sub">Scholar's udtrækkede noter vil vises her</div>
+            </div>
+          </div>
+          <div id="libraryEditor" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+            <textarea id="noteEditorArea" style="flex:1;background:var(--surface2);border:none;color:var(--text);padding:24px;font-family:monospace;font-size:13px;line-height:1.7;resize:none;outline:none;width:100%;height:100%;min-height:400px;"></textarea>
+            <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+              <button class="btn" onclick="saveEditNote()">💾 Gem ændringer</button>
+              <button class="btn btn-secondary" onclick="cancelEditNote()">Annuller</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ PAGE -->
+    <div id="page-quiz" class="page">
+      <div class="quiz-layout">
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;gap:12px;margin-bottom:16px;">
+              <select class="subject-select" id="quizSubjectSelect" style="margin:0;">
+                <option value="">Select subject...</option>
+              </select>
+              <button class="btn btn-secondary" onclick="loadQuizFiles()">Load</button>
+            </div>
+            <div id="quizFileList" class="empty-state">
+              <div class="empty-icon">✏️</div>
+              <div class="empty-title">No quizzes yet</div>
+              <div class="empty-sub">Ask Quizmaster to generate one after uploading notes</div>
+            </div>
+          </div>
+
+          <div class="quiz-card" id="quizCard" style="display:none;">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px;" id="quizProgress">Question 1 of 10</div>
+            <div class="quiz-q" id="quizQuestion">Loading question...</div>
+            <div id="quizOptions"></div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+              <button class="btn btn-secondary" onclick="skipQuestion()">Skip</button>
+              <button class="btn" onclick="nextQuestion()" id="nextBtn" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-sidebar">
+          <div class="progress-card">
+            <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:12px;">Session score</div>
+            <div style="font-size:32px;font-weight:600;" id="scoreDisplay">—</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="scoreBar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="progress-card">
+            <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:10px;">Recent attempts</div>
+            <div id="recentAttempts" style="font-size:13px;color:var(--text3);">No attempts yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANNER PAGE -->
+    <div id="page-planner" class="page">
+
+      <!-- UGE -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">
+          <span id="weekRangeLabel">Uge</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="changeWeek(-1)">‹ Forrige</button>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="goToCurrentWeek()">Denne uge</button>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="changeWeek(1)">Næste ›</button>
+          </div>
+        </div>
+
+        <div id="taskForm" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:16px;">
+          <input type="hidden" id="taskEditId" value="" />
+          <input type="hidden" id="taskEditSubject" value="" />
+          <input type="hidden" id="taskAddDate" value="" />
+          <input type="hidden" id="taskAddSubject" value="" />
+          <div style="font-size:12px;color:var(--accent);margin-bottom:2px;" id="taskFormDayLabel"></div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:12px;" id="taskFormSubjectLabel"></div>
+
+          <!-- ADD MODE: flere linjer ad gangen -->
+          <div id="taskAddFields">
+            <div id="taskRows"></div>
+            <button type="button" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-bottom:12px;" onclick="addTaskRow()">+ Tilføj linje</button>
+          </div>
+
+          <!-- EDIT MODE: én opgave ad gangen -->
+          <div id="taskEditFields" style="display:none;">
+            <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Type</div>
+                <select id="editTaskType" class="subject-select" style="margin:0;padding:9px 12px;font-size:13px;">
+                  <option value="Aflevering">Aflevering</option>
+                  <option value="Opgave">Opgave</option>
+                  <option value="Læsning">Læsning</option>
+                  <option value="Møde">Møde</option>
+                  <option value="Andet">Andet</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Titel</div>
+                <input type="text" id="editTaskTitle" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;outline:none;font-family:inherit;" />
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:140px 100px 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Dato</div>
+                <input type="date" id="editTaskDueDate" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;outline:none;font-family:inherit;" />
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Tid</div>
+                <input type="time" id="editTaskDueTime" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;outline:none;font-family:inherit;" />
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-weight:600;">Noter</div>
+                <input type="text" id="editTaskNotes" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;width:100%;outline:none;font-family:inherit;" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;">
+            <button class="btn" style="padding:8px 18px;font-size:13px;" onclick="submitTask()" id="taskSubmitBtn">Gem alle</button>
+            <button class="btn btn-secondary" style="padding:8px 18px;font-size:13px;" onclick="toggleTaskForm(false)">Annuller</button>
+          </div>
+        </div>
+
+        <div id="weekGrid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;">
+          <div style="font-size:13px;color:var(--text3);grid-column:1/-1;">Indlæser...</div>
+        </div>
+      </div>
+
+      <!-- UGEN EFTER -->
+      <div class="card">
+        <div class="card-title">
+          <span id="weekRangeLabelNext">Ugen efter</span>
+        </div>
+        <div id="weekGridNext" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;">
+          <div style="font-size:13px;color:var(--text3);grid-column:1/-1;">Indlæser...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</main>
+
+<div class="notif" id="notif">
+  <div class="notif-title" id="notifTitle"></div>
+  <div class="notif-body" id="notifBody"></div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:51763';
+let currentAgent = 'Bill';
+let selectedFile = null;
+let quizData = [];
+let quizIdx = 0;
+let correct = 0;
+let answered = 0;
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner'};
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  if (name === 'overview') { loadActivity(); loadStats(); loadLastBackupLabel(); }
+  if (name === 'planner') { loadPlannerWeek(); }
+  if (name === 'agents') { loadAgentsPage(); }
+  if (name === 'library') { loadLibrary(); }
+  if (name === 'upload') { loadSubjectsForUpload(); }
+  if (name === 'quiz') { loadSubjectsForQuiz(); }
+}
+
+function updateTime() {
+  const now = new Date();
+  document.getElementById('currentTime').textContent = now.toLocaleTimeString('da-DK', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('welcomeDate').textContent = now.toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+
+setInterval(updateTime, 1000);
+updateTime();
+
+async function checkGateway() {
+  try {
+    const r = await fetch(API + '/api/version', {signal: AbortSignal.timeout(3000)});
+    if (r.ok) {
+      document.getElementById('gatewayBadge').innerHTML = '<div class="gateway-dot"></div><span>Gateway online</span>';
+      document.getElementById('gatewayBadge').style.color = 'var(--green)';
+    }
+  } catch {
+    document.getElementById('gatewayBadge').innerHTML = '<div class="gateway-dot" style="background:var(--red)"></div><span>Offline</span>';
+    document.getElementById('gatewayBadge').style.color = 'var(--red)';
+  }
+}
+
+checkGateway();
+setInterval(checkGateway, 30000);
+
+async function loadStats() {
+  try {
+    const [subjects, activity] = await Promise.all([
+      fetch(API + '/api/subjects').then(r => r.json()),
+      fetch(API + '/api/activity').then(r => r.json()).catch(() => [])
+    ]);
+    const subList = subjects.subjects || [];
+    document.getElementById('statSubjects').textContent = subList.length;
+    document.getElementById('statTasks').textContent = Array.isArray(activity) ? activity.length : 0;
+
+    let notes = 0, quizzes = 0;
+    for (const s of subList) {
+      try {
+        const files = await fetch(API + '/api/subjects/' + s + '/files').then(r => r.json()).catch(() => ({files:[]}));
+        const f = files.files || [];
+        notes += f.filter(x => x.endsWith('_notes.md')).length;
+        quizzes += f.filter(x => x.endsWith('_quiz.md')).length;
+      } catch {}
+    }
+    document.getElementById('statNotes').textContent = notes;
+    document.getElementById('statQuizzes').textContent = quizzes;
+  } catch {}
+}
+
+async function loadActivity() {
+  try {
+    const data = await fetch(API + '/api/activity').then(r => r.json());
+    const items = Array.isArray(data) ? data.slice(0, 8) : [];
+    const colors = {bill:'var(--accent)', vault:'var(--blue)', scholar:'var(--green)', quizmaster:'var(--purple)', planner:'var(--yellow)', dev:'var(--red)'};
+    if (!items.length) {
+      document.getElementById('activityList').innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-icon">📋</div><div class="empty-title">No activity yet</div><div class="empty-sub">Agent tasks will appear here</div></div>';
+      return;
+    }
+    document.getElementById('activityList').innerHTML = items.map(i => {
+      const c = colors[i.agent_name?.toLowerCase()] || 'var(--text3)';
+      const statusClass = i.status === 'completed' ? 'status-completed' : 'status-failed';
+      const t = new Date(i.created_at).toLocaleTimeString('da-DK', {hour:'2-digit',minute:'2-digit'});
+      return `<div class="activity-item">
+        <div class="activity-dot" style="background:${c}"></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="activity-agent" style="color:${c}">${i.agent_name}</span>
+            <span class="status-badge ${statusClass}">${i.status}</span>
+          </div>
+          <div class="activity-text">${i.task_description}</div>
+          <div class="activity-time">${t}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const counts = {};
+    items.forEach(i => { counts[i.agent_name] = (counts[i.agent_name] || 0) + 1; });
+    const total = items.length;
+    document.getElementById('agentBreakdown').innerHTML = Object.entries(counts).map(([name, cnt]) => {
+      const c = colors[name?.toLowerCase()] || 'var(--text3)';
+      const pct = Math.round(cnt / total * 100);
+      return `<div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;">
+          <span style="color:${c};font-weight:500;">${name}</span>
+          <span style="color:var(--text3);">${cnt} tasks</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:${pct}%;background:${c}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('activityList').innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px;">Could not load activity. Is the API running?</div>';
+  }
+}
+
+loadActivity();
+loadStats();
+loadLastBackupLabel();
+
+async function loadAgentsPage() {
+  const agents = [
+    {name:'Bill', role:'Coordinator', color:'var(--accent)', bg:'var(--accent2)', letter:'B', status:'live'},
+    {name:'Vault', role:'File Librarian', color:'var(--blue)', bg:'var(--blue2)', letter:'V', status:'live'},
+    {name:'Scholar', role:'Notes Specialist', color:'var(--green)', bg:'var(--green2)', letter:'S', status:'live'},
+    {name:'Quizmaster', role:'Quiz Specialist', color:'var(--purple)', bg:'var(--purple2)', letter:'Q', status:'live'},
+    {name:'Planner', role:'Schedule Manager', color:'var(--yellow)', bg:'var(--yellow2)', letter:'P', status:'standby'},
+    {name:'Dev', role:'Infrastructure', color:'var(--red)', bg:'var(--red2)', letter:'D', status:'live'},
+  ];
+
+  let activity = [];
+  try { activity = await fetch(API + '/api/activity').then(r => r.json()); } catch {}
+
+  document.getElementById('agentsGrid').innerHTML = agents.map(a => {
+    const tasks = Array.isArray(activity) ? activity.filter(i => i.agent_name?.toLowerCase() === a.name.toLowerCase()) : [];
+    const badge = a.status === 'live' ? '<span class="live-badge">Live</span>' : '<span class="standby-badge">Standby</span>';
+    return `<div class="agent-card">
+      <div class="agent-card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="agent-avatar-lg" style="background:${a.bg};color:${a.color}">${a.letter}</div>
+          <div>
+            <div class="agent-card-name">${a.name}</div>
+            <div class="agent-card-role">${a.role}</div>
+          </div>
+        </div>
+        ${badge}
+      </div>
+      <div class="agent-stat"><span class="agent-stat-label">Tasks today</span><span class="agent-stat-val">${tasks.length}</span></div>
+      <div class="agent-stat"><span class="agent-stat-label">Model</span><span class="agent-stat-val" style="font-size:11px;">step-3.7-flash</span></div>
+      <div class="agent-stat"><span class="agent-stat-label">Status</span><span class="agent-stat-val" style="color:${a.status==='live'?'var(--green)':'var(--yellow)'}">${a.status}</span></div>
+    </div>`;
+  }).join('');
+
+  if (Array.isArray(activity) && activity.length) {
+    document.getElementById('agentsActivity').innerHTML = activity.slice(0,6).map(i => {
+      const colors = {bill:'var(--accent)',vault:'var(--blue)',scholar:'var(--green)',quizmaster:'var(--purple)',planner:'var(--yellow)',dev:'var(--red)'};
+      const c = colors[i.agent_name?.toLowerCase()] || 'var(--text3)';
+      const statusClass = i.status === 'completed' ? 'status-completed' : 'status-failed';
+      return `<div class="activity-item">
+        <div class="activity-dot" style="background:${c}"></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="activity-agent" style="color:${c}">${i.agent_name}</span>
+            <span class="status-badge ${statusClass}">${i.status}</span>
+          </div>
+          <div class="activity-text">${i.task_description}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('agentsActivity').innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px;">No recent activity</div>';
+  }
+}
+
+function selectAgent(name, role, color, el) {
+  document.querySelectorAll('.chat-agent-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  currentAgent = name;
+  document.getElementById('chatAgentName').textContent = name;
+  document.getElementById('chatAgentRole').textContent = role;
+  document.getElementById('chatInput').placeholder = 'Message ' + name + '...';
+  document.getElementById('chatMessages').innerHTML = `<div class="msg">
+    <div class="msg-avatar" style="background:${color}22;color:${color}">${name[0]}</div>
+    <div class="msg-bubble">Hi Michael! I'm ${name}${role ? ', your ' + role.toLowerCase() : ''}. How can I help?</div>
+  </div>`;
+}
+
+const agentColors = {bill:'var(--accent)',vault:'var(--blue)',scholar:'var(--green)',quizmaster:'var(--purple)',planner:'var(--yellow)',dev:'var(--red)'};
+
+function addChatMsg(agent, text, isUser, isStatus) {
+  const msgs = document.getElementById('chatMessages');
+  const color = agentColors[agent?.toLowerCase()] || 'var(--accent)';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg' + (isUser ? ' user' : '');
+  if (isUser) {
+    bubble.innerHTML = '<div class="msg-avatar">M</div><div class="msg-bubble">' + text + '</div>';
+  } else {
+    bubble.innerHTML = '<div class="msg-avatar" style="background:' + color + '22;color:' + color + '">' + agent[0].toUpperCase() + '</div><div class="msg-bubble" style="' + (isStatus ? 'color:var(--text3);font-style:italic;' : '') + '">' + text + '</div>';
+  }
+  msgs.appendChild(bubble);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const sendBtn = document.querySelector('.chat-input-area .btn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  addChatMsg(currentAgent, text, true, false);
+
+  let prevActivity = [];
+  try {
+    const a = await fetch(API + '/api/activity').then(r => r.json());
+    prevActivity = Array.isArray(a) ? a : (a.activities || []);
+  } catch {}
+  const prevIds = new Set(prevActivity.map(x => x.created_at + x.agent_name + x.task_description));
+
+  const workingBubble = addChatMsg(currentAgent, 'Arbejder...', false, true);
+  const bubble = workingBubble.querySelector('.msg-bubble');
+
+
+
+  let dots = 0;
+  const dotSteps = ['Arbejder', 'Arbejder.', 'Arbejder..', 'Arbejder...'];
+  const dotInterval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    if (bubble.style.fontStyle === 'italic') bubble.textContent = dotSteps[dots];
+  }, 600);
+
+  let attempts = 0;
+  const maxAttempts = 24; // 2 min max (24 x 5s)
+
+  // Also run the agent and capture stdout for quick responses
+  let agentResult = null;
+  fetch(API + '/api/agent/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({agent: currentAgent.toLowerCase(), task: text})
+  }).then(r => r.json()).then(data => {
+    agentResult = data.stdout || data.result || data.output || null;
+  }).catch(() => {});
+
+  const poll = setInterval(async () => {
+    attempts++;
+    try {
+      const activity = await fetch(API + '/api/activity').then(r => r.json());
+      const entries = Array.isArray(activity) ? activity : (activity.activities || []);
+      const newEntries = entries.filter(x => {
+        const id = x.created_at + x.agent_name + x.task_description;
+        return !prevIds.has(id) && x.agent_name?.toLowerCase() === currentAgent.toLowerCase();
+      });
+      const allNew = entries.filter(x => !prevIds.has(x.created_at + x.agent_name + x.task_description));
+
+      // Show result if: new log entry found, OR agent returned stdout, OR timeout
+      const hasResult = newEntries.length > 0;
+      const hasStdout = agentResult && agentResult.trim().length > 10;
+      const timedOut = attempts >= maxAttempts;
+
+      if (hasResult || hasStdout || timedOut) {
+        clearInterval(poll);
+        clearInterval(dotInterval);
+        bubble.style.fontStyle = 'normal';
+
+        if (hasStdout && !hasResult) {
+          // Quick response via stdout (simple questions)
+          bubble.style.color = 'var(--green)';
+          bubble.textContent = agentResult.trim().substring(0, 300);
+        } else if (hasResult) {
+          const latest = newEntries[0];
+          bubble.style.color = latest.status === 'completed' ? 'var(--green)' : 'var(--red)';
+          bubble.textContent = (latest.status === 'completed' ? 'OK' : 'FEJL') + ': ' + latest.task_description;
+
+          const msgs = document.getElementById('chatMessages');
+          for (const e of allNew.slice(0, 6)) {
+            if (e.agent_name?.toLowerCase() === currentAgent.toLowerCase()) continue;
+            const c = agentColors[e.agent_name?.toLowerCase()] || 'var(--text3)';
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = '<div class="msg-avatar" style="background:' + c + '22;color:' + c + '">' + e.agent_name[0].toUpperCase() + '</div><div class="msg-bubble" style="font-size:12px;color:var(--text2);">' + (e.status === 'completed' ? 'OK' : 'FEJL') + ': ' + e.agent_name + ': ' + e.task_description + '</div>';
+            msgs.appendChild(div);
+          }
+          msgs.scrollTop = msgs.scrollHeight;
+        } else {
+          bubble.style.color = 'var(--yellow)';
+          bubble.textContent = 'Agenten arbejder i baggrunden. Tjek Overview for status.';
+        }
+        if (sendBtn) sendBtn.disabled = false;
+      }
+    } catch {}
+  }, 5000);
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+async function loadSubjectsForUpload() {
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const sel = document.getElementById('subjectSelect');
+    sel.innerHTML = '<option value="">Select existing subject or type new one below...</option>';
+    (data.subjects || []).forEach(s => {
+      sel.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+  } catch {}
+}
+
+function dragOver(e) { e.preventDefault(); document.getElementById('uploadArea').classList.add('dragover'); }
+function dragLeave() { document.getElementById('uploadArea').classList.remove('dragover'); }
+function dropFile(e) {
+  e.preventDefault();
+  dragLeave();
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+function fileSelected(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('uploadTitle').textContent = f.name;
+  document.getElementById('selectedFile').textContent = f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)';
+  document.getElementById('uploadArea').style.borderColor = 'var(--accent)';
+}
+
+const PIPELINE_AGENTS = ['vault', 'scholar', 'quizmaster'];
+const PIPELINE_LABELS = {
+  vault: 'Vault — registrerer filen',
+  scholar: 'Scholar — laver noter',
+  quizmaster: 'Quizmaster — laver quiz'
+};
+
+function pipelineStepRow(agent) {
+  return `<div id="pipelineStep-${agent}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+    <div class="pipeline-step-icon-live" style="width:16px;text-align:center;flex-shrink:0;color:var(--text3);font-size:13px;">⏳</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;color:var(--text);">${PIPELINE_LABELS[agent]}</div>
+      <div style="font-size:11px;color:var(--text3);" id="pipelineStep-${agent}-status">Venter...</div>
+    </div>
+  </div>`;
+}
+
+function renderPipelineStatusCard() {
+  document.getElementById('uploadStatus').innerHTML = `<div class="card" style="margin-top:0">
+    <div style="font-weight:500;margin-bottom:8px;">Pipeline kører</div>
+    ${PIPELINE_AGENTS.map(pipelineStepRow).join('')}
+  </div>`;
+}
+
+let pipelinePollInterval = null;
+
+function trackPipelineProgress(prevIds) {
+  const seenIds = new Set(prevIds);
+  const doneAgents = new Set();
+  let attempts = 0;
+  const maxAttempts = 60;
+
+  if (pipelinePollInterval) clearInterval(pipelinePollInterval);
+  pipelinePollInterval = setInterval(async () => {
+    attempts++;
+    try {
+      const activity = await fetch(API + '/api/activity?limit=50').then(r => r.json());
+      const entries = Array.isArray(activity) ? activity : (activity.activities || []);
+
+      for (const e of entries) {
+        const id = e.created_at + e.agent_name + e.task_description;
+        if (seenIds.has(id)) continue;
+        const agent = e.agent_name?.toLowerCase();
+        if (!PIPELINE_AGENTS.includes(agent)) continue;
+        seenIds.add(id);
+
+        const statusEl = document.getElementById('pipelineStep-' + agent + '-status');
+        const iconEl = document.querySelector('#pipelineStep-' + agent + ' .pipeline-step-icon-live');
+        if (!statusEl || !iconEl) continue;
+
+        if (e.status === 'completed') {
+          statusEl.textContent = 'Færdig';
+          statusEl.style.color = 'var(--green)';
+          iconEl.textContent = '✓';
+          iconEl.style.color = 'var(--green)';
+          doneAgents.add(agent);
+        } else if (e.status === 'failed') {
+          statusEl.textContent = 'Fejlede — ' + (e.task_description || '');
+          statusEl.style.color = 'var(--red)';
+          iconEl.textContent = '✕';
+          iconEl.style.color = 'var(--red)';
+          doneAgents.add(agent);
+        } else {
+          statusEl.textContent = 'Kører...';
+          statusEl.style.color = 'var(--accent)';
+          iconEl.textContent = '●';
+          iconEl.style.color = 'var(--accent)';
+        }
+      }
+
+      if (doneAgents.size >= PIPELINE_AGENTS.length || attempts >= maxAttempts) {
+        clearInterval(pipelinePollInterval);
+        if (doneAgents.size >= PIPELINE_AGENTS.length) {
+          showNotif('Pipeline færdig', 'Tjek Library og Practice for resultatet');
+        } else {
+          showNotif('Tjekker stadig', 'Følg med i Overview hvis siden lukkes ned');
+        }
+      }
+    } catch {}
+  }, 5000);
+}
+
+async function startPipeline() {
+  if (!selectedFile) { showNotif('Ingen fil', 'Vælg en fil først'); return; }
+  const subject = document.getElementById('subjectNew').value.trim() || document.getElementById('subjectSelect').value || 'General';
+  if (!subject) { showNotif('Intet fag', 'Indtast et fagnavn'); return; }
+  const sessionName = document.getElementById('sessionName')?.value.trim() || '';
+
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  let prevActivity = [];
+  try {
+    const a = await fetch(API + '/api/activity').then(r => r.json());
+    prevActivity = Array.isArray(a) ? a : (a.activities || []);
+  } catch {}
+  const prevIds = prevActivity.map(x => x.created_at + x.agent_name + x.task_description);
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+  form.append('subject', subject);
+  if (sessionName) form.append('session_name', sessionName);
+
+  try {
+    const r = await fetch(API + '/api/upload', {method: 'POST', body: form});
+    await r.json();
+    showNotif('Upload started', 'Pipeline er i gang for ' + subject);
+    renderPipelineStatusCard();
+    trackPipelineProgress(prevIds);
+  } catch {
+    showNotif('Error', 'Upload failed. Check API connection.');
+    document.getElementById('uploadStatus').innerHTML = '<div class="card" style="margin-top:0;color:var(--red);">Upload failed — tjek at API-serveren kører</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Start pipeline';
+}
+
+let currentNoteSubject = null;
+let currentNoteFile = null;
+
+async function loadLibrary() {
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const subjects = data.subjects || [];
+    
+    const header = '<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Fag & Noter</span><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="loadLibrary()">↻</button></div>';
+    let html = header;
+    let hasAny = false;
+
+    for (const s of subjects) {
+      try {
+        const files = await fetch(API + '/api/subjects/' + s + '/files').then(r => r.json());
+        const notes = (files.files || []).filter(f => f.includes('notes/') && f.endsWith('.md'));
+        
+        // Subject header with delete button
+        html += '<div style="padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);">';
+        html += '<span style="font-size:12px;font-weight:600;color:var(--accent);">📚 ' + s + '</span>';
+        html += '<button onclick="confirmDeleteSubject(\'' + s + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px;" title="Slet fag">🗑️</button>';
+        html += '</div>';
+
+        if (notes.length === 0) {
+          html += '<div style="padding:4px 14px 10px;font-size:12px;color:var(--text3);">Ingen noter endnu</div>';
+        }
+
+        for (const f of notes) {
+          hasAny = true;
+          const fname = f.split('/').pop().replace('.md','').replace(/-/g,' ').replace(/_/g,' ');
+          html += '<div class="library-file" style="padding-left:24px;" onclick="loadNote(\'' + s + '\',\'' + f + '\',this)">';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+          html += '<div class="library-file-name" style="font-size:12px;">' + fname + '</div>';
+          html += '<button onclick="event.stopPropagation();confirmDeleteNote(\'' + s + '\',\'' + f + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;" title="Slet note">✕</button>';
+          html += '</div></div>';
+        }
+      } catch {}
+    }
+
+    if (!hasAny && subjects.length === 0) {
+      html += '<div class="empty-state" style="padding:24px 14px;"><div class="empty-sub">Ingen noter endnu. Upload en fil for at komme i gang.</div></div>';
+    }
+
+    document.getElementById('libraryFiles').innerHTML = html;
+  } catch {}
+}
+
+function confirmDeleteSubject(subject) {
+  if (confirm('Slet hele faget "' + subject + '" og alle dets noter? Dette kan ikke fortrydes.')) {
+    deleteSubject(subject);
+  }
+}
+
+async function deleteSubject(subject) {
+  try {
+    await fetch(API + '/api/subjects/' + subject, {method: 'DELETE'});
+    showNotif('Fag slettet', subject + ' er fjernet');
+    loadLibrary();
+    document.getElementById('libraryContent').innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">Vælg en notefil</div></div>';
+    document.getElementById('libraryToolbar').style.display = 'none';
+  } catch { showNotif('Fejl', 'Kunne ikke slette faget'); }
+}
+
+function confirmDeleteNote(subject, filename) {
+  const name = filename.split('/').pop().replace('.md','');
+  if (confirm('Slet noten "' + name + '"? Dette kan ikke fortrydes.')) {
+    deleteNote(subject, filename);
+  }
+}
+
+async function deleteNote(subject, filename) {
+  try {
+    await fetch(API + '/api/subjects/' + subject + '/notes/' + encodeURIComponent(filename), {method: 'DELETE'});
+    showNotif('Note slettet', filename.split('/').pop() + ' er fjernet');
+    loadLibrary();
+    document.getElementById('libraryContent').innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">Vælg en notefil</div></div>';
+    document.getElementById('libraryToolbar').style.display = 'none';
+    currentNoteSubject = null;
+    currentNoteFile = null;
+  } catch { showNotif('Fejl', 'Kunne ikke slette noten'); }
+}
+
+function startEditNote() {
+  const content = document.getElementById('libraryContent');
+  const editor = document.getElementById('libraryEditor');
+  const raw = content.getAttribute('data-raw') || '';
+  document.getElementById('noteEditorArea').value = raw;
+  content.style.display = 'none';
+  editor.style.display = 'flex';
+}
+
+function cancelEditNote() {
+  document.getElementById('libraryContent').style.display = 'block';
+  document.getElementById('libraryEditor').style.display = 'none';
+}
+
+async function saveEditNote() {
+  if (!currentNoteSubject || !currentNoteFile) return;
+  const newContent = document.getElementById('noteEditorArea').value;
+  try {
+    await fetch(API + '/api/subjects/' + currentNoteSubject + '/notes/' + encodeURIComponent(currentNoteFile), {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: newContent})
+    });
+    showNotif('Gemt!', 'Noten er opdateret');
+    cancelEditNote();
+    document.getElementById('libraryContent').setAttribute('data-raw', newContent);
+    document.getElementById('libraryContent').innerHTML = marked.parse(newContent);
+  } catch { showNotif('Fejl', 'Kunne ikke gemme noten'); }
+}
+
+async function loadNote(subject, filename, el) {
+  document.querySelectorAll('.library-file').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  currentNoteSubject = subject;
+  currentNoteFile = filename;
+  cancelEditNote();
+  try {
+    const data = await fetch(API + '/api/subjects/' + subject + '/notes/' + encodeURIComponent(filename)).then(r => r.json());
+    const md = data.content || '';
+    const lc = document.getElementById('libraryContent');
+    lc.innerHTML = renderMarkdown(md);
+    lc.setAttribute('data-raw', md);
+    lc.style.display = 'block';
+    // Show toolbar
+    const toolbar = document.getElementById('libraryToolbar');
+    if (toolbar) {
+      toolbar.style.display = 'flex';
+      const nameEl = document.getElementById('libraryCurrentFile');
+      if (nameEl) nameEl.textContent = filename.split('/').pop().replace('.md','').replace(/-/g,' ').replace(/_/g,' ');
+    }
+  } catch {
+    document.getElementById('libraryContent').innerHTML = '<div style="color:var(--text3);">Kunne ikke indlæse noten.</div>';
+  }
+}
+
+function renderMarkdown(md) {
+  if (typeof marked !== "undefined") {
+    return marked.parse(md);
+  }
+  return md
+    .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>')
+    .replace(/^\* (.+)$/gm, '<li class="md-li">$1</li>')
+    .replace(/^- (.+)$/gm, '<li class="md-li">$1</li>')
+    .replace(/<li/g, '<ul class="md-ul"><li').replace(/<\/li>/g, '</li></ul>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p class="md-p">')
+    .replace(/^(?!<[hul])(.+)$/gm, '<p class="md-p">$1</p>');
+}
+
+async function loadSubjectsForQuiz() {
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const sel = document.getElementById('quizSubjectSelect');
+    sel.innerHTML = '<option value="">Select subject...</option>';
+    (data.subjects || []).forEach(s => { sel.innerHTML += `<option value="${s}">${s}</option>`; });
+  } catch {}
+}
+
+async function loadQuizFiles() {
+  const subject = document.getElementById('quizSubjectSelect').value;
+  if (!subject) return;
+  try {
+    const data = await fetch(API + '/api/subjects/' + subject + '/files').then(r => r.json());
+    const quizzes = (data.files || []).filter(f => f.includes('quizzes/') && f.endsWith('.md'));
+    if (!quizzes.length) {
+      document.getElementById('quizFileList').innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><div class="empty-title">No quizzes yet</div><div class="empty-sub">Ask Quizmaster in Chat to generate a quiz for ' + subject + '</div></div>';
+      return;
+    }
+    document.getElementById('quizFileList').innerHTML = quizzes.map(f => {
+      const fname = f.split('/').pop();
+      return `<div class="library-file" onclick="loadQuiz('${subject}','${f}',this)" style="border-radius:8px;border:1px solid var(--border);margin-bottom:6px;">
+        <div class="library-file-name">${fname.replace('-quiz.md','').replace('.md','').replace(/-/g,' ').replace(/_/g,' ')}</div>
+        <div class="library-file-meta">${subject}</div>
+      </div>`;
+    }).join('');
+  } catch {}
+}
+
+async function loadQuiz(subject, filename, el) {
+  document.querySelectorAll('.library-file').forEach(f => f.classList.remove('active'));
+  if (el) el.classList.add('active');
+  try {
+    const data = await fetch(API + '/api/subjects/' + subject + '/notes/' + encodeURIComponent(filename)).then(r => r.json());
+    parseAndStartQuiz(data.content || '');
+  } catch {}
+}
+
+function parseAndStartQuiz(md) {
+  const lines = md.split('\n');
+  quizData = [];
+  let current = null;
+  for (const line of lines) {
+    if (line.match(/^\d+\./)) {
+      if (current) quizData.push(current);
+      current = {q: line.replace(/^\d+\.\s*/, ''), options: [], correct: 0};
+    } else if (line.match(/^[A-D]\)/)) {
+      if (current) {
+        const isCorrect = line.includes('*') || line.includes('✓');
+        current.options.push(line.replace(/^[A-D]\)\s*/, '').replace(/\*/g,'').trim());
+        if (isCorrect) current.correct = current.options.length - 1;
+      }
+    }
+  }
+  if (current) quizData.push(current);
+  if (!quizData.length) {
+    quizData = [{q:'No structured quiz questions found. Ask Quizmaster to generate a proper quiz.', options:['OK'], correct:0}];
+  }
+  quizIdx = 0; correct = 0; answered = 0;
+  document.getElementById('quizCard').style.display = 'block';
+  showQuizQuestion();
+}
+
+function showQuizQuestion() {
+  if (quizIdx >= quizData.length) {
+    const pct = Math.round(correct / answered * 100);
+    document.getElementById('quizQuestion').textContent = 'Quiz complete!';
+    document.getElementById('quizOptions').innerHTML = `<div class="card" style="text-align:center;padding:24px;"><div style="font-size:32px;font-weight:600;color:var(--accent);">${pct}%</div><div style="color:var(--text2);margin-top:8px;">${correct} / ${answered} correct</div></div>`;
+    document.getElementById('nextBtn').disabled = true;
+    return;
+  }
+  const q = quizData[quizIdx];
+  document.getElementById('quizProgress').textContent = `Question ${quizIdx+1} of ${quizData.length}`;
+  document.getElementById('quizQuestion').textContent = q.q;
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('quizOptions').innerHTML = q.options.map((o,i) =>
+    `<div class="quiz-option" onclick="answerQuiz(${i})">${String.fromCharCode(65+i)}) ${o}</div>`
+  ).join('');
+}
+
+function answerQuiz(idx) {
+  const q = quizData[quizIdx];
+  const opts = document.querySelectorAll('.quiz-option');
+  opts.forEach(o => o.style.pointerEvents = 'none');
+  opts[q.correct].classList.add('correct');
+  if (idx !== q.correct) opts[idx].classList.add('wrong');
+  else correct++;
+  answered++;
+  const pct = Math.round(correct / answered * 100);
+  document.getElementById('scoreDisplay').textContent = pct + '%';
+  document.getElementById('scoreBar').style.width = pct + '%';
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextQuestion() { quizIdx++; showQuizQuestion(); }
+function skipQuestion() { quizIdx++; showQuizQuestion(); }
+
+const subjectColors = {
+  'StoreSystemer': 'var(--blue)',
+  'Systemintegration': 'var(--green)',
+  'Database for udviklere': 'var(--purple)',
+  'Videnskabsteori': 'var(--yellow)',
+  'Softwarekvalitet': 'var(--accent)',
+  'DevOps': 'var(--red)',
+};
+
+function getSubjectColor(subject) {
+  if (!subject) return 'var(--text3)';
+  for (const [key, color] of Object.entries(subjectColors)) {
+    if (subject.toLowerCase().includes(key.toLowerCase())) return color;
+  }
+  return 'var(--accent)';
+}
+
+function formatTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('da-DK', {weekday:'long', day:'numeric', month:'long'});
+}
+
+let weekOffset = 0;
+
+function getWeekDates(offset) {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset + (offset * 7));
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function toISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function formatWeekRangeLabel(dates) {
+  const opts = {day:'numeric', month:'long'};
+  const start = dates[0].toLocaleDateString('da-DK', opts);
+  const end = dates[6].toLocaleDateString('da-DK', {day:'numeric', month:'long', year:'numeric'});
+  return start + ' – ' + end;
+}
+
+function changeWeek(delta) {
+  weekOffset += delta;
+  loadPlannerWeek();
+}
+
+function goToCurrentWeek() {
+  weekOffset = 0;
+  loadPlannerWeek();
+}
+
+const DAY_LABELS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
+
+function dayColumnHtml(date, isToday, classEvents, tasks) {
+  const iso = toISODate(date);
+  const label = DAY_LABELS[date.getDay() === 0 ? 6 : date.getDay() - 1] + ' ' + date.getDate() + '/' + (date.getMonth() + 1);
+
+  let classHtml = '';
+  if (classEvents.length) {
+    classHtml = classEvents.map(ev => {
+      const color = getSubjectColor(ev.subject || ev.title);
+      return `<div class="day-class-badge" style="background:${color}22;color:${color};">${ev.subject || ev.title || 'Undervisning'}<div style="font-size:9px;opacity:0.85;margin-top:1px;">${formatTime(ev.start)}-${formatTime(ev.end)}</div></div>`;
+    }).join('');
+  } else {
+    classHtml = '<div class="day-no-class">Ingen undervisning</div>';
+  }
+
+  const sortedTasks = tasks.slice().sort((a, b) => (a.due_time || '99:99').localeCompare(b.due_time || '99:99'));
+  const itemsHtml = sortedTasks.map(t => taskChipHtml(t)).join('');
+
+  const argsEsc = (s) => (s || '').replace(/'/g, "\\'");
+
+  return `<div class="day-col ${isToday ? 'today' : ''}">
+    <div class="day-col-label">${label}${isToday ? ' · i dag' : ''}</div>
+    ${classHtml}
+    <div class="day-items">${itemsHtml}</div>
+    <button class="day-add-btn" onclick="openTaskFormForDay('${iso}')">+ Tilføj</button>
+  </div>`;
+}
+
+const TASK_TYPE_ICONS = {
+  'Aflevering': 'var(--red)',
+  'Opgave': 'var(--text2)',
+  'Læsning': 'var(--blue)',
+  'Møde': 'var(--purple)',
+  'Andet': 'var(--text2)',
+};
+
+function taskChipHtml(t) {
+  const argsEsc = (s) => (s || '').replace(/'/g, "\\'");
+  const timeHtml = t.due_time ? `<div style="font-size:9px;color:var(--blue);margin-top:1px;">${t.due_time}</div>` : '';
+  const notesHtml = t.notes ? `<div style="font-size:9px;color:var(--text3);margin-top:1px;">${t.notes}</div>` : '';
+  return `<div class="day-task ${t.completed ? 'completed' : ''}">
+    <input type="checkbox" class="day-task-check" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete(${t.id}, this.checked)" />
+    <div style="flex:1;min-width:0;">
+      <div class="day-task-title">${t.title}</div>
+      ${timeHtml}
+      ${notesHtml}
+    </div>
+    <div class="day-task-actions">
+      <button onclick="editTask(${t.id}, '${argsEsc(t.subject)}', '${argsEsc(t.title)}', '${argsEsc(t.task_type)}', '${t.due_date || ''}', '${t.due_time || ''}', '${argsEsc(t.notes)}')" title="Rediger">✏️</button>
+      <button onclick="confirmDeleteTask(${t.id}, '${argsEsc(t.title)}')" title="Slet">✕</button>
+    </div>
+  </div>`;
+}
+
+let lastWeekEventsByDay = {};
+
+function renderWeekInto(gridId, dates, events, taskList, todayIso) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = dates.map(d => {
+    const iso = toISODate(d);
+    const dayEvents = events.filter(e => toISODate(new Date(e.start)) === iso);
+    const dayTasks = taskList.filter(t => t.due_date === iso);
+    lastWeekEventsByDay[iso] = dayEvents;
+    return dayColumnHtml(d, iso === todayIso, dayEvents, dayTasks);
+  }).join('');
+}
+
+async function loadPlannerWeek() {
+  const grid = document.getElementById('weekGrid');
+  const gridNext = document.getElementById('weekGridNext');
+  grid.innerHTML = '<div style="font-size:13px;color:var(--text3);grid-column:1/-1;">Indlæser...</div>';
+  gridNext.innerHTML = '<div style="font-size:13px;color:var(--text3);grid-column:1/-1;">Indlæser...</div>';
+
+  const dates = getWeekDates(weekOffset);
+  const datesNext = getWeekDates(weekOffset + 1);
+  document.getElementById('weekRangeLabel').textContent = formatWeekRangeLabel(dates);
+  document.getElementById('weekRangeLabelNext').textContent = 'Ugen efter · ' + formatWeekRangeLabel(datesNext);
+
+  const now = new Date();
+  const todayIso = toISODate(now);
+
+  try {
+    const [scheduleData, tasks] = await Promise.all([
+      fetch(API + '/api/schedule').then(r => r.json()).catch(() => []),
+      fetch(API + '/api/tasks').then(r => r.json()).catch(() => [])
+    ]);
+    const events = Array.isArray(scheduleData) ? scheduleData : (scheduleData.events || []);
+    const taskList = Array.isArray(tasks) ? tasks : [];
+
+    lastWeekEventsByDay = {};
+    renderWeekInto('weekGrid', dates, events, taskList, todayIso);
+    renderWeekInto('weekGridNext', datesNext, events, taskList, todayIso);
+  } catch {
+    grid.innerHTML = '<div style="font-size:13px;color:var(--red);grid-column:1/-1;">Kunne ikke hente uge — tjek at API kører</div>';
+    gridNext.innerHTML = '';
+  }
+}
+
+// ===== OPGAVER (manuelle, fra Itslearning) =====
+
+let taskFormMode = 'add';
+
+function toggleTaskForm(show) {
+  const form = document.getElementById('taskForm');
+  const willShow = show === undefined ? (form.style.display === 'none') : show;
+  form.style.display = willShow ? 'block' : 'none';
+  if (!willShow) resetTaskForm();
+}
+
+function resetTaskForm() {
+  taskFormMode = 'add';
+  document.getElementById('taskEditId').value = '';
+  document.getElementById('taskEditSubject').value = '';
+  document.getElementById('taskAddDate').value = '';
+  document.getElementById('taskAddSubject').value = '';
+  document.getElementById('taskFormDayLabel').textContent = '';
+  document.getElementById('taskFormSubjectLabel').textContent = '';
+  document.getElementById('taskRows').innerHTML = '';
+  document.getElementById('taskAddFields').style.display = 'block';
+  document.getElementById('taskEditFields').style.display = 'none';
+  document.getElementById('taskSubmitBtn').textContent = 'Gem alle';
+}
+
+function taskRowHtml() {
+  return `<div class="task-row" style="display:grid;grid-template-columns:120px 1fr 100px 28px;gap:6px;align-items:center;margin-bottom:6px;">
+    <select class="task-row-type" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:7px 8px;font-size:12px;">
+      <option value="Læsning">Læsning</option>
+      <option value="Opgave">Opgave</option>
+      <option value="Aflevering">Aflevering</option>
+      <option value="Møde">Møde</option>
+      <option value="Andet">Andet</option>
+    </select>
+    <input type="text" class="task-row-title" placeholder="F.eks. Læs side 8-35" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:7px 8px;font-size:13px;width:100%;outline:none;font-family:inherit;" />
+    <input type="time" class="task-row-time" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:7px 8px;font-size:12px;width:100%;outline:none;font-family:inherit;" />
+    <button type="button" onclick="removeTaskRow(this)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">✕</button>
+  </div>`;
+}
+
+function addTaskRow() {
+  document.getElementById('taskRows').insertAdjacentHTML('beforeend', taskRowHtml());
+}
+
+function removeTaskRow(btn) {
+  const rows = document.getElementById('taskRows');
+  if (rows.children.length > 1) {
+    btn.closest('.task-row').remove();
+  }
+}
+
+function openTaskFormForDay(iso) {
+  resetTaskForm();
+  taskFormMode = 'add';
+  document.getElementById('taskAddDate').value = iso;
+
+  const dayEvents = lastWeekEventsByDay[iso] || [];
+  const subject = dayEvents.length ? (dayEvents[0].subject || dayEvents[0].title) : 'Generelt';
+  document.getElementById('taskAddSubject').value = subject;
+
+  const d = new Date(iso + 'T00:00:00');
+  document.getElementById('taskFormDayLabel').textContent = 'Ny opgave – ' + d.toLocaleDateString('da-DK', {weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('taskFormSubjectLabel').textContent = dayEvents.length ? ('Fag: ' + subject + ' (fra skema)') : 'Fag: ' + subject;
+
+  document.getElementById('taskRows').innerHTML = taskRowHtml();
+  document.getElementById('taskAddFields').style.display = 'block';
+  document.getElementById('taskEditFields').style.display = 'none';
+  document.getElementById('taskSubmitBtn').textContent = 'Gem alle';
+
+  toggleTaskForm(true);
+  document.getElementById('taskForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function submitTask() {
+  if (taskFormMode === 'edit') {
+    await submitEditTask();
+  } else {
+    await submitTaskRows();
+  }
+}
+
+async function submitTaskRows() {
+  const subject = document.getElementById('taskAddSubject').value;
+  const due_date = document.getElementById('taskAddDate').value;
+  const rowEls = Array.from(document.querySelectorAll('#taskRows .task-row'));
+
+  const payloads = rowEls.map(row => ({
+    subject,
+    title: row.querySelector('.task-row-title').value.trim(),
+    task_type: row.querySelector('.task-row-type').value,
+    due_date,
+    due_time: row.querySelector('.task-row-time').value || null,
+    notes: ''
+  })).filter(p => p.title);
+
+  if (!payloads.length) {
+    showNotif('Udfyld en titel', 'Tilføj mindst én linje med en titel');
+    return;
+  }
+
+  try {
+    await Promise.all(payloads.map(p => fetch(API + '/api/tasks', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p)})));
+    showNotif('Tilføjet', payloads.length + ' opgave(r) gemt');
+    toggleTaskForm(false);
+    loadPlannerWeek();
+  } catch {
+    showNotif('Fejl', 'Kunne ikke gemme opgaverne');
+  }
+}
+
+async function submitEditTask() {
+  const id = document.getElementById('taskEditId').value;
+  const subject = document.getElementById('taskEditSubject').value;
+  const title = document.getElementById('editTaskTitle').value.trim();
+  const task_type = document.getElementById('editTaskType').value;
+  const due_date = document.getElementById('editTaskDueDate').value || null;
+  const due_time = document.getElementById('editTaskDueTime').value || null;
+  const notes = document.getElementById('editTaskNotes').value.trim();
+
+  if (!title) {
+    showNotif('Udfyld titel', 'Titel er påkrævet');
+    return;
+  }
+
+  const payload = {subject, title, task_type, due_date, due_time, notes};
+  try {
+    await fetch(API + '/api/tasks/' + id, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    showNotif('Opdateret', title);
+    toggleTaskForm(false);
+    loadPlannerWeek();
+  } catch {
+    showNotif('Fejl', 'Kunne ikke opdatere opgaven');
+  }
+}
+
+function editTask(id, subject, title, task_type, due_date, due_time, notes) {
+  resetTaskForm();
+  taskFormMode = 'edit';
+  document.getElementById('taskEditId').value = id;
+  document.getElementById('taskEditSubject').value = subject;
+  document.getElementById('editTaskType').value = task_type;
+  document.getElementById('editTaskTitle').value = title;
+  document.getElementById('editTaskDueDate').value = due_date || '';
+  document.getElementById('editTaskDueTime').value = due_time || '';
+  document.getElementById('editTaskNotes').value = notes || '';
+  document.getElementById('taskFormDayLabel').textContent = 'Rediger opgave';
+  document.getElementById('taskFormSubjectLabel').textContent = 'Fag: ' + subject;
+  document.getElementById('taskAddFields').style.display = 'none';
+  document.getElementById('taskEditFields').style.display = 'block';
+  document.getElementById('taskSubmitBtn').textContent = 'Opdater';
+  toggleTaskForm(true);
+  document.getElementById('taskForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function toggleTaskComplete(id, completed) {
+  try {
+    await fetch(API + '/api/tasks/' + id, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({completed})});
+    loadPlannerWeek();
+  } catch { showNotif('Fejl', 'Kunne ikke opdatere opgaven'); }
+}
+
+function confirmDeleteTask(id, title) {
+  if (confirm('Slet opgaven "' + title + '"?')) deleteTask(id);
+}
+
+async function deleteTask(id) {
+  try {
+    await fetch(API + '/api/tasks/' + id, {method: 'DELETE'});
+    showNotif('Opgave slettet', '');
+    loadPlannerWeek();
+  } catch { showNotif('Fejl', 'Kunne ikke slette opgaven'); }
+}
+
+// ===== BACKUP =====
+
+async function backupNow() {
+  try {
+    const r = await fetch(API + '/api/backup', {method: 'POST'});
+    const data = await r.json();
+    if (data.error) {
+      showNotif('Backup fejlede', data.error);
+    } else {
+      showNotif('Backup gemt', 'Commit ' + (data.commit || '').substring(0, 8));
+      loadLastBackupLabel();
+    }
+  } catch {
+    showNotif('Fejl', 'Kunne ikke lave backup — tjek at API kører');
+  }
+}
+
+async function loadLastBackupLabel() {
+  const el = document.getElementById('lastBackupLabel');
+  if (!el) return;
+  try {
+    const history = await fetch(API + '/api/backup/history').then(r => r.json());
+    if (Array.isArray(history) && history.length) {
+      const latest = history[0];
+      const d = new Date(latest.date);
+      const timeStr = d.toLocaleString('da-DK', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+      el.textContent = 'Seneste backup: ' + timeStr;
+    } else {
+      el.textContent = 'Ingen backup endnu';
+    }
+  } catch {
+    el.textContent = '';
+  }
+}
+
+function showNotif(title, body) {
+  document.getElementById('notifTitle').textContent = title;
+  document.getElementById('notifBody').textContent = body;
+  const n = document.getElementById('notif');
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3500);
+}
+
+
+// Badge notification system
+let knownNotes = new Set();
+let knownQuizzes = new Set();
+let currentPage = 'overview';
+
+async function checkForNewFiles() {
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const subjects = data.subjects || [];
+    let newNotes = 0;
+    let newQuizzes = 0;
+    for (const s of subjects) {
+      try {
+        const files = await fetch(API + '/api/subjects/' + s + '/files').then(r => r.json());
+        const notes = (files.files || []).filter(f => f.includes('notes/') && f.endsWith('.md'));
+        const quizzes = (files.files || []).filter(f => f.includes('quizzes/') && f.endsWith('.md'));
+        for (const f of notes) { const k = s+'/'+f; if (!knownNotes.has(k)) { newNotes++; knownNotes.add(k); } }
+        for (const f of quizzes) { const k = s+'/'+f; if (!knownQuizzes.has(k)) { newQuizzes++; knownQuizzes.add(k); } }
+      } catch {}
+    }
+    if (currentPage !== 'library' && newNotes > 0) {
+      const b = document.getElementById('libraryBadge');
+      b.textContent = newNotes; b.style.display = 'inline-block';
+      showNotif('Noter klar!', newNotes + ' ny/nye notefil(er) i Library');
+    }
+    if (currentPage !== 'quiz' && newQuizzes > 0) {
+      const b = document.getElementById('practiceBadge');
+      b.textContent = newQuizzes; b.style.display = 'inline-block';
+      showNotif('Quiz klar!', newQuizzes + ' ny/nye quiz(zer) i Practice');
+    }
+    if (currentPage === 'overview') { loadActivity(); loadStats(); }
+  } catch {}
+}
+
+// Initialize known files on load so we only badge NEW ones
+setTimeout(async () => {
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json()).catch(() => ({subjects:[]}));
+    for (const s of (data.subjects || [])) {
+      const files = await fetch(API + '/api/subjects/' + s + '/files').then(r => r.json()).catch(() => ({files:[]}));
+      (files.files || []).filter(f => f.includes('notes/') && f.endsWith('.md')).forEach(f => knownNotes.add(s+'/'+f));
+      (files.files || []).filter(f => f.includes('quizzes/') && f.endsWith('.md')).forEach(f => knownQuizzes.add(s+'/'+f));
+    }
+  } catch {}
+}, 2000);
+
+setInterval(checkForNewFiles, 30000);
+
+// Clear badge when navigating to that page
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', function() {
+    const page = this.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+    if (page === 'library') { document.getElementById('libraryBadge').style.display = 'none'; }
+    if (page === 'quiz') { document.getElementById('practiceBadge').style.display = 'none'; }
+    currentPage = page || 'overview';
+  });
+});
+</script>
+</body>
+</html>
