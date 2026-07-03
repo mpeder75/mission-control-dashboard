@@ -774,6 +774,46 @@
 .library-content ul, .library-content ol { padding-left:20px; margin:10px 0; }
 .library-content li { font-size:14px; line-height:1.7; margin:4px 0; }
 .library-content strong { color:var(--text); }
+
+/* FLASHCARDS */
+.flashcard-layout { display:grid; grid-template-columns:220px 1fr; gap:16px; height:calc(100vh - 130px); }
+.fc-sidebar { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-y:auto; display:flex; flex-direction:column; }
+.fc-sidebar-header { padding:14px 16px; border-bottom:1px solid var(--border); font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; }
+.fc-subject-item { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; }
+.fc-subject-item:hover { background:var(--surface2); }
+.fc-subject-item.active { background:var(--accent2); }
+.fc-subject-name { font-size:13px; font-weight:500; }
+.fc-subject-meta { font-size:11px; color:var(--text3); margin-top:3px; }
+.fc-due-badge { background:var(--accent2); color:var(--accent); border-radius:10px; padding:1px 7px; font-size:10px; font-weight:700; display:inline-block; margin-top:2px; }
+.fc-main { display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+.fc-stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.fc-stat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; text-align:center; }
+.fc-stat-num { font-size:22px; font-weight:600; }
+.fc-stat-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.06em; margin-top:3px; }
+.fc-arena { display:flex; flex-direction:column; align-items:center; gap:18px; padding-bottom:20px; }
+.fc-progress-bar-wrap { width:100%; background:var(--surface3); border-radius:4px; height:4px; overflow:hidden; }
+.fc-progress-bar-fill { height:100%; border-radius:4px; background:var(--accent); transition:width 0.4s ease; }
+.fc-card-wrap { width:100%; max-width:620px; perspective:1200px; cursor:pointer; }
+.fc-card { width:100%; min-height:210px; position:relative; transform-style:preserve-3d; transition:transform 0.48s cubic-bezier(0.4,0.2,0.2,1); }
+.fc-card.flipped { transform:rotateY(180deg); }
+.fc-face { position:absolute; width:100%; min-height:210px; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 34px; text-align:center; }
+.fc-front { background:var(--surface); border:2px solid var(--border2); }
+.fc-back { background:var(--surface2); border:2px solid var(--border2); transform:rotateY(180deg); }
+.fc-face-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:14px; align-self:flex-start; }
+.fc-face-text { font-size:17px; font-weight:500; line-height:1.6; color:var(--text); }
+.fc-face-hint { font-size:11px; color:var(--text3); margin-top:18px; }
+.fc-actions { display:flex; gap:10px; width:100%; max-width:620px; }
+.fc-btn { flex:1; padding:11px 8px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.15s,transform 0.1s; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.fc-btn:hover { opacity:0.88; transform:translateY(-1px); }
+.fc-btn:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+.fc-btn-again { background:var(--red2); color:var(--red); border:1px solid rgba(232,84,84,0.3); }
+.fc-btn-hard  { background:var(--yellow2); color:var(--yellow); border:1px solid rgba(232,184,74,0.3); }
+.fc-btn-good  { background:var(--green2); color:var(--green); border:1px solid rgba(76,175,125,0.3); }
+.fc-btn-easy  { background:var(--blue2); color:var(--blue); border:1px solid rgba(74,158,255,0.3); }
+.fc-btn-sub { font-size:10px; opacity:0.72; font-weight:400; }
+.fc-complete { text-align:center; padding:40px; background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:620px; }
+.fc-complete-score { font-size:48px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+.fc-complete-label { font-size:14px; color:var(--text2); margin-bottom:20px; }
 </style>
 </head>
 <body>
@@ -819,6 +859,10 @@
     <div class="nav-item" onclick="showPage('quiz', this)">
       <span class="nav-icon">✏️</span> Practice
       <span class="nav-badge" id="practiceBadge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('flashcards', this)">
+      <span class="nav-icon">🃏</span> Flashcards
+      <span class="nav-badge" id="flashcardsBadge">0</span>
     </div>
   </div>
 
@@ -1235,6 +1279,33 @@
 
     </div>
 
+    <!-- FLASHCARDS PAGE -->
+    <div id="page-flashcards" class="page">
+      <div class="flashcard-layout">
+
+        <!-- Sidebar: fag-valg + SRS-kø status -->
+        <div class="fc-sidebar">
+          <div class="fc-sidebar-header">Fag</div>
+          <div id="fcSubjectList">
+            <div style="padding:16px;font-size:13px;color:var(--text3);">Indlæser...</div>
+          </div>
+          <div style="padding:14px 16px;border-top:1px solid var(--border);margin-top:auto;">
+            <button class="btn btn-secondary" style="width:100%;padding:8px;font-size:12px;" onclick="loadFlashcardSubjects()">↻ Opdater</button>
+          </div>
+        </div>
+
+        <!-- Hoved-panel -->
+        <div class="fc-main" id="fcMain">
+          <div class="empty-state" style="margin:auto;">
+            <div class="empty-icon">🃏</div>
+            <div class="empty-title">Vælg et fag</div>
+            <div class="empty-sub">Flashcards bygges fra dine quiz-filer og gemmer din fremgang automatisk</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -1257,7 +1328,7 @@ function showPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
-  const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner'};
+  const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner', flashcards:'Flashcards'};
   document.getElementById('pageTitle').textContent = titles[name] || name;
   if (name === 'overview') { loadActivity(); loadStats(); loadLastBackupLabel(); loadLastFrontendBackupLabel(); }
   if (name === 'planner') { loadPlannerWeek(); }
@@ -1265,6 +1336,7 @@ function showPage(name, el) {
   if (name === 'library') { loadLibrary(); }
   if (name === 'upload') { loadSubjectsForUpload(); }
   if (name === 'quiz') { loadSubjectsForQuiz(); }
+  if (name === 'flashcards') { loadFlashcardSubjects(); }
 }
 
 function updateTime() {
@@ -1586,20 +1658,10 @@ const PIPELINE_LABELS = {
   quizmaster: 'Quizmaster — laver quiz'
 };
 
-function pipelineStepRow(agent) {
-  return `<div id="pipelineStep-${agent}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-    <div class="pipeline-step-icon-live" style="width:16px;text-align:center;flex-shrink:0;color:var(--text3);font-size:13px;">⏳</div>
-    <div style="flex:1;">
-      <div style="font-size:13px;color:var(--text);">${PIPELINE_LABELS[agent]}</div>
-      <div style="font-size:11px;color:var(--text3);" id="pipelineStep-${agent}-status">Venter...</div>
-    </div>
-  </div>`;
-}
-
 function renderPipelineStatusCard() {
-  document.getElementById('uploadStatus').innerHTML = `<div class="card" style="margin-top:0">
-    <div style="font-weight:500;margin-bottom:8px;">Pipeline kører</div>
-    ${PIPELINE_AGENTS.map(pipelineStepRow).join('')}
+  document.getElementById('uploadStatus').innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px 0;font-size:13px;color:var(--text3);">
+    <span style="animation:spin 1s linear infinite;display:inline-block;">⏳</span>
+    Pipeline kører — du får besked når det er færdigt
   </div>`;
 }
 
@@ -1607,7 +1669,7 @@ let pipelinePollInterval = null;
 
 function trackPipelineProgress(prevIds) {
   const seenIds = new Set(prevIds);
-  const doneAgents = new Set();
+  const failedAgents = [];
   let attempts = 0;
   const maxAttempts = 60;
 
@@ -1617,6 +1679,7 @@ function trackPipelineProgress(prevIds) {
     try {
       const activity = await fetch(API + '/api/activity?limit=50').then(r => r.json());
       const entries = Array.isArray(activity) ? activity : (activity.activities || []);
+      let completedCount = 0;
 
       for (const e of entries) {
         const id = e.created_at + e.agent_name + e.task_description;
@@ -1624,37 +1687,19 @@ function trackPipelineProgress(prevIds) {
         const agent = e.agent_name?.toLowerCase();
         if (!PIPELINE_AGENTS.includes(agent)) continue;
         seenIds.add(id);
-
-        const statusEl = document.getElementById('pipelineStep-' + agent + '-status');
-        const iconEl = document.querySelector('#pipelineStep-' + agent + ' .pipeline-step-icon-live');
-        if (!statusEl || !iconEl) continue;
-
-        if (e.status === 'completed') {
-          statusEl.textContent = 'Færdig';
-          statusEl.style.color = 'var(--green)';
-          iconEl.textContent = '✓';
-          iconEl.style.color = 'var(--green)';
-          doneAgents.add(agent);
-        } else if (e.status === 'failed') {
-          statusEl.textContent = 'Fejlede — ' + (e.task_description || '');
-          statusEl.style.color = 'var(--red)';
-          iconEl.textContent = '✕';
-          iconEl.style.color = 'var(--red)';
-          doneAgents.add(agent);
-        } else {
-          statusEl.textContent = 'Kører...';
-          statusEl.style.color = 'var(--accent)';
-          iconEl.textContent = '●';
-          iconEl.style.color = 'var(--accent)';
-        }
+        if (e.status === 'completed') completedCount++;
+        else if (e.status === 'failed') failedAgents.push(e.agent_name);
       }
 
-      if (doneAgents.size >= PIPELINE_AGENTS.length || attempts >= maxAttempts) {
+      const done = completedCount >= PIPELINE_AGENTS.length || failedAgents.length > 0 || attempts >= maxAttempts;
+      if (done) {
         clearInterval(pipelinePollInterval);
-        if (doneAgents.size >= PIPELINE_AGENTS.length) {
-          showNotif('Pipeline færdig', 'Tjek Library og Practice for resultatet');
+        if (failedAgents.length > 0) {
+          document.getElementById('uploadStatus').innerHTML = `<div style="padding:12px;background:var(--red2);border:1px solid var(--red);border-radius:10px;color:var(--red);font-size:13px;">
+            ✕ Pipeline fejlede for: ${failedAgents.join(', ')} — tjek Overview for detaljer
+          </div>`;
         } else {
-          showNotif('Tjekker stadig', 'Følg med i Overview hvis siden lukkes ned');
+          document.getElementById('uploadStatus').innerHTML = '';
         }
       }
     } catch {}
@@ -2394,6 +2439,11 @@ async function checkForNewFiles() {
       b.textContent = newQuizzes; b.style.display = 'inline-block';
       showNotif('Quiz klar!', newQuizzes + ' ny/nye quiz(zer) i Practice');
     }
+    // Flashcards badge: same as Practice (quiz files)
+    if (currentPage !== 'flashcards' && newQuizzes > 0) {
+      const b = document.getElementById('flashcardsBadge');
+      b.textContent = newQuizzes; b.style.display = 'inline-block';
+    }
     if (currentPage === 'overview') { loadActivity(); loadStats(); }
   } catch {}
 }
@@ -2418,9 +2468,366 @@ document.querySelectorAll('.nav-item').forEach(el => {
     const page = this.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
     if (page === 'library') { document.getElementById('libraryBadge').style.display = 'none'; }
     if (page === 'quiz') { document.getElementById('practiceBadge').style.display = 'none'; }
+    if (page === 'flashcards') { document.getElementById('flashcardsBadge').style.display = 'none'; }
     currentPage = page || 'overview';
   });
 });
+
+// ===== FLASHCARDS + SPACED REPETITION =====
+// SRS data stored in backend SQLite via /api/srs/{subject}
+let _srsCache = {};
+
+async function srsLoad(subject) {
+  try {
+    const rows = await fetch(API + '/api/srs/' + encodeURIComponent(subject)).then(r => r.json());
+    const data = {};
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      data[row.card_key] = { interval: row.interval, easeFactor: row.ease_factor, reps: row.reps, due: row.due_date };
+    }
+    _srsCache[subject] = data;
+    return data;
+  } catch { return _srsCache[subject] || {}; }
+}
+
+async function srsSaveCard(subject, cardKey, cardData) {
+  if (!_srsCache[subject]) _srsCache[subject] = {};
+  _srsCache[subject][cardKey] = cardData;
+  try {
+    await fetch(API + '/api/srs/' + encodeURIComponent(subject), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ card_key: cardKey, interval: cardData.interval, ease_factor: cardData.easeFactor, reps: cardData.reps, due_date: cardData.due })
+    });
+  } catch {}
+}
+
+function srsCardKey(subject, question) {
+  // Simple deterministic key from subject + first 60 chars of question
+  const q = question.trim().substring(0, 60).replace(/\s+/g, '_');
+  return subject + '::' + q;
+}
+
+function srsTodayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function srsIsDue(card) {
+  if (!card || !card.due) return true;
+  return card.due <= srsTodayISO();
+}
+
+// Grade: 0=again, 1=hard, 2=good, 3=easy
+function srsGrade(card, grade) {
+  const today = srsTodayISO();
+  if (!card) card = { interval: 0, easeFactor: 2.5, reps: 0, due: today };
+
+  let { interval, easeFactor, reps } = card;
+
+  if (grade === 0) {
+    // Again: reset
+    interval = 1;
+    reps = 0;
+  } else if (grade === 1) {
+    // Hard: slight interval reduction
+    interval = Math.max(1, Math.round(interval * 1.2));
+    easeFactor = Math.max(1.3, easeFactor - 0.15);
+  } else if (grade === 2) {
+    // Good
+    if (reps === 0) interval = 1;
+    else if (reps === 1) interval = 3;
+    else interval = Math.round(interval * easeFactor);
+    easeFactor = Math.max(1.3, easeFactor + 0.0);
+    reps++;
+  } else {
+    // Easy
+    if (reps === 0) interval = 4;
+    else interval = Math.round(interval * easeFactor * 1.3);
+    easeFactor = Math.min(3.0, easeFactor + 0.15);
+    reps++;
+  }
+
+  const due = new Date();
+  due.setDate(due.getDate() + interval);
+  return { interval, easeFactor, reps, due: due.toISOString().slice(0, 10) };
+}
+
+// Next-due label for display on buttons
+function srsNextLabel(grade, card) {
+  const next = srsGrade(card, grade);
+  const d = next.interval;
+  if (d === 1) return 'i morgen';
+  if (d < 7) return d + ' dage';
+  if (d < 30) return Math.round(d / 7) + ' uger';
+  return Math.round(d / 30) + ' mdr';
+}
+
+// Parse quiz MD into flashcard objects {question, answer, options}
+function parseQuizToFlashcards(md, subject) {
+  const lines = md.split('\n');
+  const cards = [];
+  let current = null;
+  for (const line of lines) {
+    const qMatch = line.match(/^\d+\.\s+(.+)/);
+    if (qMatch) {
+      if (current && current.answer) cards.push(current);
+      current = { question: qMatch[1].trim(), answer: '', options: [], subject, _answerLetter: '' };
+    } else if (current) {
+      // Handle option lines: "A) Text" or "A) Text *" or "A) ✓ Text"
+      const optMatch = line.match(/^([A-D])[\)\.]\s+(.+)/);
+      if (optMatch) {
+        const letter = optMatch[1];
+        const text = optMatch[2].replace(/\*/g,'').replace(/✓/g,'').trim();
+        const isCorrect = line.includes('*') || line.includes('✓');
+        current.options.push(text);
+        if (isCorrect) { current.answer = text; current._answerLetter = letter; }
+      }
+      // Handle "Answer: B" or "Svar: B" format (Gemini style)
+      const ansMatch = line.match(/^(?:Answer|Svar|Correct|Korrekt):\s*([A-D])/i);
+      if (ansMatch && current.options.length > 0) {
+        const idx = ansMatch[1].charCodeAt(0) - 65; // A=0, B=1, etc.
+        if (idx >= 0 && idx < current.options.length) {
+          current.answer = current.options[idx];
+          current._answerLetter = ansMatch[1];
+        }
+      }
+    }
+  }
+  if (current && current.answer) cards.push(current);
+  return cards;
+}
+
+// State
+let fcAllCards = [];      // all parsed cards for current subject
+let fcDueCards = [];      // filtered to due today
+let fcCurrentIdx = 0;
+let fcFlipped = false;
+let fcSessionCorrect = 0;
+let fcSessionTotal = 0;
+let fcCurrentSubject = null;
+
+async function loadFlashcardSubjects() {
+  const list = document.getElementById('fcSubjectList');
+  list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text3);">Indlæser...</div>';
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const subjects = data.subjects || [];
+    if (!subjects.length) {
+      list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text3);">Ingen fag endnu. Upload en PDF for at komme i gang.</div>';
+      return;
+    }
+
+    // Load SRS data for each subject from backend
+    let html = '';
+    let totalDue = 0;
+    for (const s of subjects) {
+      const srsData = await srsLoad(s);
+      const vals = Object.values(srsData);
+      const dueCount = vals.filter(v => srsIsDue(v)).length;
+      const totalKnown = vals.length;
+      totalDue += dueCount;
+      html += `<div class="fc-subject-item ${fcCurrentSubject === s ? 'active' : ''}" onclick="loadFlashcardsForSubject('${s}', this)">
+        <div class="fc-subject-name">${s}</div>
+        <div class="fc-subject-meta">
+          ${dueCount > 0 ? `<span class="fc-due-badge">${dueCount} klar</span>` : ''}
+          <span>${totalKnown} i køen</span>
+        </div>
+      </div>`;
+    }
+    list.innerHTML = html;
+
+    // Update badge in sidebar nav
+    const badge = document.getElementById('flashcardsBadge');
+    if (totalDue > 0) { badge.textContent = totalDue; badge.style.display = 'inline-block'; }
+    else badge.style.display = 'none';
+  } catch {
+    list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--red);">Kunne ikke hente fag</div>';
+  }
+}
+
+async function loadFlashcardsForSubject(subject, el) {
+  document.querySelectorAll('.fc-subject-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  fcCurrentSubject = subject;
+
+  const main = document.getElementById('fcMain');
+  main.innerHTML = '<div style="padding:32px;color:var(--text3);font-size:13px;">Indlæser kort...</div>';
+
+  try {
+    const filesData = await fetch(API + '/api/subjects/' + subject + '/files').then(r => r.json());
+    const quizFiles = (filesData.files || []).filter(f => f.includes('quizzes/') && f.endsWith('.md'));
+
+    let allCards = [];
+    for (const f of quizFiles) {
+      const noteData = await fetch(API + '/api/subjects/' + subject + '/notes/' + encodeURIComponent(f)).then(r => r.json()).catch(() => null);
+      if (noteData && noteData.content) {
+        const cards = parseQuizToFlashcards(noteData.content, subject);
+        allCards = allCards.concat(cards);
+      }
+    }
+
+    if (!allCards.length) {
+      main.innerHTML = `<div class="empty-state" style="margin:auto;">
+        <div class="empty-icon">🃏</div>
+        <div class="empty-title">Ingen flashcards endnu</div>
+        <div class="empty-sub">Bed Quizmaster om at lave en quiz for ${subject} i Chat-siden</div>
+      </div>`;
+      return;
+    }
+
+    fcAllCards = allCards;
+    const srsData = await srsLoad(subject);
+
+    // Split into due and future
+    const due = allCards.filter(c => srsIsDue(srsData[srsCardKey(subject, c.question)]));
+    const newCards = allCards.filter(c => !srsData[srsCardKey(subject, c.question)]);
+
+    // Session: due cards first, then new cards (max 20 new per session)
+    const sessionNew = newCards.slice(0, Math.max(0, 20 - due.length));
+    fcDueCards = shuffle([...due, ...sessionNew]);
+    fcCurrentIdx = 0;
+    fcFlipped = false;
+    fcSessionCorrect = 0;
+    fcSessionTotal = 0;
+
+    renderFlashcardUI();
+  } catch {
+    main.innerHTML = '<div style="color:var(--red);padding:20px;">Kunne ikke indlæse kort</div>';
+  }
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function renderFlashcardUI() {
+  const main = document.getElementById('fcMain');
+  const total = fcDueCards.length;
+  const done = fcCurrentIdx;
+  // Use in-memory cache (already loaded when session started)
+  const srsData = _srsCache[fcCurrentSubject] || {};
+
+  // Stats row
+  const totalKnown = Object.keys(srsData).length;
+  const dueCount = Object.values(srsData).filter(v => srsIsDue(v)).length;
+  const learnedCount = Object.values(srsData).filter(v => !srsIsDue(v)).length;
+
+  if (fcCurrentIdx >= total) {
+    // Session done
+    const pct = fcSessionTotal > 0 ? Math.round(fcSessionCorrect / fcSessionTotal * 100) : 100;
+    main.innerHTML = `
+      <div class="fc-stats-row">
+        <div class="fc-stat"><div class="fc-stat-num" style="color:var(--green)">${fcSessionCorrect}</div><div class="fc-stat-label">Korrekte</div></div>
+        <div class="fc-stat"><div class="fc-stat-num" style="color:var(--red)">${fcSessionTotal - fcSessionCorrect}</div><div class="fc-stat-label">Igen</div></div>
+        <div class="fc-stat"><div class="fc-stat-num">${totalKnown}</div><div class="fc-stat-label">I køen</div></div>
+        <div class="fc-stat"><div class="fc-stat-num" style="color:var(--blue)">${learnedCount}</div><div class="fc-stat-label">Lært</div></div>
+      </div>
+      <div class="fc-arena">
+        <div class="fc-complete">
+          <div class="fc-complete-score">${pct}%</div>
+          <div class="fc-complete-label">${fcSessionTotal} kort gennemgået · ${fcSessionCorrect} korrekte</div>
+          <button class="btn" onclick="loadFlashcardsForSubject('${fcCurrentSubject}', document.querySelector('.fc-subject-item.active'))">Start igen</button>
+        </div>
+      </div>`;
+    loadFlashcardSubjects(); // refresh due counts in sidebar
+    return;
+  }
+
+  const card = fcDueCards[fcCurrentIdx];
+  const cardKey = srsCardKey(fcCurrentSubject, card.question);
+  const srsCard = srsData[cardKey] || null;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+  main.innerHTML = `
+    <div class="fc-stats-row">
+      <div class="fc-stat"><div class="fc-stat-num">${total - done}</div><div class="fc-stat-label">Tilbage</div></div>
+      <div class="fc-stat"><div class="fc-stat-num" style="color:var(--green)">${fcSessionCorrect}</div><div class="fc-stat-label">Korrekte</div></div>
+      <div class="fc-stat"><div class="fc-stat-num">${totalKnown}</div><div class="fc-stat-label">I køen</div></div>
+      <div class="fc-stat"><div class="fc-stat-num" style="color:var(--blue)">${learnedCount}</div><div class="fc-stat-label">Lært</div></div>
+    </div>
+
+    <div class="fc-progress-bar-wrap"><div class="fc-progress-bar-fill" style="width:${pct}%"></div></div>
+
+    <div class="fc-arena">
+      <div class="fc-card-wrap" onclick="flipCard()" title="Klik for at vende">
+        <div class="fc-card" id="fcCard">
+          <div class="fc-face fc-front">
+            <div class="fc-face-label">Spørgsmål</div>
+            <div class="fc-face-text">${card.question}</div>
+            <div class="fc-face-hint">👆 Klik for at se svaret</div>
+          </div>
+          <div class="fc-face fc-back">
+            <div class="fc-face-label">Svar</div>
+            <div class="fc-face-text" style="color:var(--green)">${card.answer}</div>
+            ${card.options.length > 1 ? `<div class="fc-face-hint" style="margin-top:12px;font-size:12px;color:var(--text3);">${card.options.filter(o=>o!==card.answer).map(o=>'<span style="color:var(--text3)">✗ '+o+'</span>').join('<br>')}</div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="fc-actions" id="fcActions">
+        <button class="fc-btn fc-btn-again" id="fcBtnAgain" onclick="gradeCard(0)" disabled>
+          ✗ Igen
+          <span class="fc-btn-sub">i morgen</span>
+        </button>
+        <button class="fc-btn fc-btn-hard" id="fcBtnHard" onclick="gradeCard(1)" disabled>
+          ~ Svær
+          <span class="fc-btn-sub">${srsNextLabel(1, srsCard)}</span>
+        </button>
+        <button class="fc-btn fc-btn-good" id="fcBtnGood" onclick="gradeCard(2)" disabled>
+          ✓ God
+          <span class="fc-btn-sub">${srsNextLabel(2, srsCard)}</span>
+        </button>
+        <button class="fc-btn fc-btn-easy" id="fcBtnEasy" onclick="gradeCard(3)" disabled>
+          ⚡ Let
+          <span class="fc-btn-sub">${srsNextLabel(3, srsCard)}</span>
+        </button>
+      </div>
+    </div>`;
+
+  fcFlipped = false;
+}
+
+function flipCard() {
+  if (fcCurrentIdx >= fcDueCards.length) return;
+  const cardEl = document.getElementById('fcCard');
+  if (!cardEl) return;
+  fcFlipped = !fcFlipped;
+  cardEl.classList.toggle('flipped', fcFlipped);
+  if (fcFlipped) {
+    // Enable grading buttons
+    ['fcBtnAgain','fcBtnHard','fcBtnGood','fcBtnEasy'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.disabled = false;
+    });
+  }
+}
+
+async function gradeCard(grade) {
+  if (fcCurrentIdx >= fcDueCards.length) return;
+  const card = fcDueCards[fcCurrentIdx];
+  const cardKey = srsCardKey(fcCurrentSubject, card.question);
+  const srsData = _srsCache[fcCurrentSubject] || {};
+  const updated = srsGrade(srsData[cardKey] || null, grade);
+
+  // Save to backend (fire and forget — cache updated immediately)
+  srsSaveCard(fcCurrentSubject, cardKey, updated);
+
+  // Track session stats: grade >= 2 counts as correct
+  fcSessionTotal++;
+  if (grade >= 2) fcSessionCorrect++;
+
+  // If again (grade=0), re-insert card later in queue
+  if (grade === 0) {
+    const insertAt = Math.min(fcCurrentIdx + 4, fcDueCards.length);
+    fcDueCards.splice(insertAt, 0, card);
+  }
+
+  fcCurrentIdx++;
+  renderFlashcardUI();
+}
 </script>
 </body>
 </html>

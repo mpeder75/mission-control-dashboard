@@ -25,6 +25,7 @@ PROFILES_DIR = Path("/home/michael/.hermes/profiles")
 DB_PATH = Path(os.environ.get("AGENT_LOG_DB", "/home/michael/.hermes/agent-logs.db"))
 HERMES_VENV = Path("/home/michael/.hermes/hermes-agent/venv/bin/python")
 HERMES_ROOT = "/home/michael/.hermes"
+SRS_DB = Path('/home/michael/dashboard/srs.db')
 
 
 def run_agent(agent: str, task: str) -> dict:
@@ -155,16 +156,94 @@ def list_profiles():
             })
     return {"profiles": profiles}
 
+MANUAL_TASKS_DB = Path("/home/michael/.hermes/manual_tasks.db")
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
-MANUAL_TASKS_DB = Path("/home/michael/.hermes/manual_tasks.db")
+
+def init_srs_db():
+    conn = sqlite3.connect(str(SRS_DB))
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS srs_progress (
+                card_key TEXT PRIMARY KEY,
+                interval INTEGER DEFAULT 1,
+                ease_factor REAL DEFAULT 2.5,
+                reps INTEGER DEFAULT 0,
+                due_date TEXT DEFAULT '2000-01-01',
+                updated_at TEXT
+            )
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# SRS progress
+# ---------------------------------------------------------------------------
+
+def _srs_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(str(SRS_DB))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+@app.get("/api/srs/{subject}")
+def get_srs_subject(subject: str):
+    conn = _srs_conn()
+    try:
+        rows = conn.execute(
+            "SELECT card_key, interval, ease_factor, reps, due_date, updated_at FROM srs_progress WHERE card_key LIKE ?",
+            (f"{subject}::%",),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+@app.post("/api/srs/{subject}")
+def post_srs_subject(subject: str, payload: dict | None = None):
+    if payload is None:
+        raise HTTPException(status_code=415, detail="JSON body required")
+    card_key = payload.get("card_key")
+    if card_key is None:
+        raise HTTPException(status_code=400, detail="card_key is required")
+    if not str(card_key).startswith(f"{subject}::"):
+        raise HTTPException(status_code=400, detail="card_key must start with subject prefix")
+
+    interval = payload.get("interval", 1)
+    ease_factor = payload.get("ease_factor", 2.5)
+    reps = payload.get("reps", 0)
+    due_date = payload.get("due_date", "2000-01-01")
+    updated_at = datetime.now(timezone.utc).isoformat()
+
+    conn = _srs_conn()
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO srs_progress (card_key, interval, ease_factor, reps, due_date, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (card_key, interval, ease_factor, reps, due_date, updated_at),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT card_key, interval, ease_factor, reps, due_date, updated_at FROM srs_progress WHERE card_key = ?",
+            (card_key,),
+        ).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
+
 
 # ---------------------------------------------------------------------------
 # Manual tasks (homework tracking)
 # ---------------------------------------------------------------------------
 
-def _get_tasks_conn():
+def _get_tasks_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(MANUAL_TASKS_DB))
     conn.row_factory = sqlite3.Row
     return conn
@@ -241,6 +320,7 @@ def backup_dashboard(message: str) -> dict:
 
 
 # Initialise once at import / startup
+init_srs_db()
 _init_manual_tasks_db()
 _init_backup_repo()
 
@@ -680,6 +760,7 @@ def root_index():
             "/api/subjects/{subject}",
             "/api/subjects/{subject}/notes/{filename}",
             "/api/subjects/{subject}/rename-note",
+            "/api/srs/{subject}",
             "/static/",
         ],
     }
