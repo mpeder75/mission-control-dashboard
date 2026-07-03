@@ -30,7 +30,7 @@
     --red: #e85454;
     --red2: rgba(232,84,84,0.12);
     --radius: 10px;
-    --sidebar: 220px;
+    --sidebar: 190px;
   }
 
   body {
@@ -93,7 +93,7 @@
   }
 
   .sidebar-label {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--text3);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -110,7 +110,7 @@
     border-radius: 7px;
     cursor: pointer;
     color: var(--text2);
-    font-size: 13px;
+    font-size: 14px;
     transition: background 0.15s, color 0.15s;
     margin-bottom: 1px;
   }
@@ -588,7 +588,7 @@
   .day-col.today { border: 2px solid var(--accent); }
 
   .day-col-label {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--text3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -601,13 +601,13 @@
   .day-class-badge {
     border-radius: 6px;
     padding: 4px 5px;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 500;
     margin-bottom: 8px;
   }
 
   .day-no-class {
-    font-size: 9.5px;
+    font-size: 14px;
     color: var(--text3);
     font-style: italic;
     margin-bottom: 8px;
@@ -622,7 +622,7 @@
     background: var(--surface3);
     border-radius: 6px;
     padding: 5px 6px;
-    font-size: 10.5px;
+    font-size: 14px;
     line-height: 1.35;
   }
 
@@ -897,9 +897,11 @@
           <div class="tag"><div class="tag-dot" style="background:var(--blue)"></div>SSH tunnel ready</div>
           <div class="tag"><div class="tag-dot" style="background:var(--accent)"></div>6 agents loaded</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap;">
           <button class="btn" style="padding:8px 16px;font-size:13px;" onclick="backupNow()">💾 Lav backup nu</button>
           <span style="font-size:12px;color:var(--text3);" id="lastBackupLabel"></span>
+          <button class="btn btn-secondary" style="padding:8px 16px;font-size:13px;" onclick="backupFrontendNow()">💾 Backup frontend</button>
+          <span style="font-size:12px;color:var(--text3);" id="lastFrontendBackupLabel"></span>
         </div>
       </div>
 
@@ -1257,7 +1259,7 @@ function showPage(name, el) {
   if (el) el.classList.add('active');
   const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner'};
   document.getElementById('pageTitle').textContent = titles[name] || name;
-  if (name === 'overview') { loadActivity(); loadStats(); loadLastBackupLabel(); }
+  if (name === 'overview') { loadActivity(); loadStats(); loadLastBackupLabel(); loadLastFrontendBackupLabel(); }
   if (name === 'planner') { loadPlannerWeek(); }
   if (name === 'agents') { loadAgentsPage(); }
   if (name === 'library') { loadLibrary(); }
@@ -1364,6 +1366,7 @@ async function loadActivity() {
 loadActivity();
 loadStats();
 loadLastBackupLabel();
+loadLastFrontendBackupLabel();
 
 async function loadAgentsPage() {
   const agents = [
@@ -2021,7 +2024,7 @@ function dayColumnHtml(date, isToday, classEvents, tasks) {
   if (classEvents.length) {
     classHtml = classEvents.map(ev => {
       const color = getSubjectColor(ev.subject || ev.title);
-      return `<div class="day-class-badge" style="background:${color}22;color:${color};">${ev.subject || ev.title || 'Undervisning'}<div style="font-size:9px;opacity:0.85;margin-top:1px;">${formatTime(ev.start)}-${formatTime(ev.end)}</div></div>`;
+      return `<div class="day-class-badge" style="background:${color}22;color:${color};">${ev.subject || ev.title || 'Undervisning'}<div style="font-size:14px;opacity:0.85;margin-top:1px;">${formatTime(ev.start)}-${formatTime(ev.end)}</div></div>`;
     }).join('');
   } else {
     classHtml = '<div class="day-no-class">Ingen undervisning</div>';
@@ -2050,8 +2053,8 @@ const TASK_TYPE_ICONS = {
 
 function taskChipHtml(t) {
   const argsEsc = (s) => (s || '').replace(/'/g, "\\'");
-  const timeHtml = t.due_time ? `<div style="font-size:9px;color:var(--blue);margin-top:1px;">${t.due_time}</div>` : '';
-  const notesHtml = t.notes ? `<div style="font-size:9px;color:var(--text3);margin-top:1px;">${t.notes}</div>` : '';
+  const timeHtml = t.due_time ? `<div style="font-size:14px;color:var(--blue);margin-top:1px;">${t.due_time}</div>` : '';
+  const notesHtml = t.notes ? `<div style="font-size:14px;color:var(--text3);margin-top:1px;">${t.notes}</div>` : '';
   return `<div class="day-task ${t.completed ? 'completed' : ''}">
     <input type="checkbox" class="day-task-check" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete(${t.id}, this.checked)" />
     <div style="flex:1;min-width:0;">
@@ -2310,6 +2313,40 @@ async function loadLastBackupLabel() {
       const d = new Date(latest.date);
       const timeStr = d.toLocaleString('da-DK', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
       el.textContent = 'Seneste backup: ' + timeStr;
+    } else {
+      el.textContent = 'Ingen backup endnu';
+    }
+  } catch {
+    el.textContent = '';
+  }
+}
+
+async function backupFrontendNow() {
+  try {
+    const r = await fetch(API + '/api/backup/dashboard', {method: 'POST'});
+    const data = await r.json();
+    if (data.error) {
+      showNotif('Frontend-backup fejlede', data.error);
+    } else {
+      const pushNote = data.pushed ? '(pushet til GitHub)' : '(kun lokal — push fejlede)';
+      showNotif('Frontend backet op', 'Commit ' + (data.commit || '').substring(0, 8) + ' ' + pushNote);
+      loadLastFrontendBackupLabel();
+    }
+  } catch {
+    showNotif('Fejl', 'Kunne ikke lave frontend-backup — tjek at API kører');
+  }
+}
+
+async function loadLastFrontendBackupLabel() {
+  const el = document.getElementById('lastFrontendBackupLabel');
+  if (!el) return;
+  try {
+    const history = await fetch(API + '/api/backup/dashboard/history').then(r => r.json());
+    if (Array.isArray(history) && history.length) {
+      const latest = history[0];
+      const d = new Date(latest.date);
+      const timeStr = d.toLocaleString('da-DK', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+      el.textContent = 'Seneste: ' + timeStr;
     } else {
       el.textContent = 'Ingen backup endnu';
     }
