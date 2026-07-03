@@ -5,3 +5,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 INFO:     127.0.0.1:33862 - "GET /api/version HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56234 - "POST /api/backup/dashboard HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56250 - "GET /api/backup/dashboard/history HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [209194]
