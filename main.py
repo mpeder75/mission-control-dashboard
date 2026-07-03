@@ -129,6 +129,46 @@ def agent_stream(payload: dict):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+def _collect_notes_text(subject: str) -> str:
+    base = SUBJECTS_DIR / subject / "notes"
+    if not base.exists():
+        return ""
+    chunks: list[str] = []
+    for path in sorted(base.rglob("*")):
+        if path.is_file():
+            try:
+                text = path.read_text(errors="replace")
+            except Exception:
+                continue
+            relative = path.relative_to(base)
+            chunks.append(f"--- {relative} ---\n{text}")
+    return "\n\n".join(chunks)
+
+
+@app.post("/api/tutor")
+def tutor_feedback(payload: dict):
+    if payload is None:
+        raise HTTPException(status_code=415, detail="JSON body required")
+    subject = (payload.get("subject") or "").strip()
+    concept = (payload.get("concept") or "").strip()
+    explanation = (payload.get("explanation") or "").strip()
+    if not subject or not concept or not explanation:
+        raise HTTPException(status_code=400, detail="subject, concept, and explanation are required")
+    notes_text = _collect_notes_text(subject)
+    task = (
+        "Studerende forklarer et koncept.\n\n"
+        f"Koncept: {concept}\n\n"
+        f"Studerendes forklaring:\n{explanation}\n\n"
+        "Faglige noter:\n"
+        f"{notes_text if notes_text.strip() else '(Ingen noter fundet)'}\n\n"
+        "Giv feedback i tre dele: KORREKT, MISSET, UDDYBNING."
+    )
+    try:
+        return {"feedback": _tutor_direct(task)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/api/activity")
 def recent_activity(limit: int = 50):
     if not DB_PATH.exists():
@@ -764,3 +804,23 @@ def root_index():
             "/static/",
         ],
     }
+
+def _tutor_direct(task: str) -> str:
+    import json, requests
+    auth_path = Path("/home/michael/.hermes/shared/nous_auth.json")
+    token = json.loads(auth_path.read_text())["access_token"]
+    soul = Path("/home/michael/.hermes/profiles/tutor/SOUL.md").read_text()
+    resp = requests.post(
+        "https://inference-api.nousresearch.com/v1/chat/completions",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json={"model": "stepfun/step-3.7-flash:free", "messages": [
+            {"role": "system", "content": soul},
+            {"role": "user", "content": task}
+        ], "max_tokens": 8000},
+        timeout=120
+    )
+    data = resp.json()
+    if "choices" not in data or not data["choices"]:
+        return data.get("error", {}).get("message", str(data))
+    msg = data["choices"][0]["message"]
+    return msg.get("content") or msg.get("reasoning") or ""

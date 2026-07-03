@@ -814,6 +814,32 @@
 .fc-complete { text-align:center; padding:40px; background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:620px; }
 .fc-complete-score { font-size:48px; font-weight:700; color:var(--accent); margin-bottom:6px; }
 .fc-complete-label { font-size:14px; color:var(--text2); margin-bottom:20px; }
+
+/* TUTOR */
+.tutor-layout { display:grid; grid-template-columns:220px 1fr; gap:16px; height:calc(100vh - 130px); }
+.tutor-sidebar { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-y:auto; display:flex; flex-direction:column; }
+.tutor-sidebar-header { padding:14px 16px; border-bottom:1px solid var(--border); font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; }
+.tutor-subject-item { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; font-size:13px; }
+.tutor-subject-item:hover { background:var(--surface2); }
+.tutor-subject-item.active { background:var(--accent2); color:var(--accent); font-weight:500; }
+.tutor-main { display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+.tutor-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 24px; }
+.tutor-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; margin-bottom:8px; }
+.tutor-concept-input { width:100%; background:var(--surface2); border:1px solid var(--border2); color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px; outline:none; font-family:inherit; }
+.tutor-concept-input:focus { border-color:var(--accent); }
+.tutor-textarea { width:100%; background:var(--surface2); border:1px solid var(--border2); color:var(--text); border-radius:8px; padding:12px 14px; font-size:14px; outline:none; font-family:inherit; resize:vertical; min-height:140px; line-height:1.6; }
+.tutor-textarea:focus { border-color:var(--accent); }
+.tutor-feedback { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 24px; }
+.tutor-section { margin-bottom:18px; }
+.tutor-section:last-child { margin-bottom:0; }
+.tutor-section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.tutor-section-body { font-size:14px; line-height:1.75; color:var(--text2); }
+.tutor-section-body p { margin-bottom:8px; }
+.tutor-section-body ul { padding-left:18px; }
+.tutor-section-body li { margin-bottom:4px; }
+.tutor-thinking { display:flex; align-items:center; gap:10px; color:var(--text3); font-size:13px; font-style:italic; padding:20px 0; }
+@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+
 </style>
 </head>
 <body>
@@ -863,6 +889,9 @@
     <div class="nav-item" onclick="showPage('flashcards', this)">
       <span class="nav-icon">🃏</span> Flashcards
       <span class="nav-badge" id="flashcardsBadge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('tutor', this)">
+      <span class="nav-icon">🎓</span> Tutor
     </div>
   </div>
 
@@ -1306,6 +1335,40 @@
       </div>
     </div>
 
+    <!-- TUTOR PAGE -->
+    <div id="page-tutor" class="page">
+      <div class="tutor-layout">
+
+        <div class="tutor-sidebar">
+          <div class="tutor-sidebar-header">Vælg fag</div>
+          <div id="tutorSubjectList">
+            <div style="padding:16px;font-size:13px;color:var(--text3);">Indlæser...</div>
+          </div>
+        </div>
+
+        <div class="tutor-main">
+          <div class="tutor-card">
+            <div class="tutor-label">Koncept</div>
+            <input type="text" id="tutorConcept" class="tutor-concept-input" placeholder="F.eks. Docker container, Virtualisering, CI/CD..." />
+          </div>
+
+          <div class="tutor-card">
+            <div class="tutor-label">Forklar konceptet med dine egne ord</div>
+            <textarea id="tutorExplanation" class="tutor-textarea" placeholder="Skriv din forklaring her — som om du forklarer det til en ven. Jo mere du skriver, jo bedre feedback får du..."></textarea>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+              <button class="btn" id="tutorSubmitBtn" onclick="submitTutor()">🎓 Få feedback</button>
+              <span style="font-size:12px;color:var(--text3);" id="tutorSelectedSubject">Vælg et fag i sidepanelet</span>
+            </div>
+          </div>
+
+          <div id="tutorFeedback" style="display:none;" class="tutor-feedback">
+            <div id="tutorFeedbackContent"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -1328,7 +1391,7 @@ function showPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
-  const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner', flashcards:'Flashcards'};
+  const titles = {overview:'Overview', agents:'Agents', chat:'Chat', upload:'Upload', library:'Library', quiz:'Practice', planner:'Planner', flashcards:'Flashcards', tutor:'Tutor'};
   document.getElementById('pageTitle').textContent = titles[name] || name;
   if (name === 'overview') { loadActivity(); loadStats(); loadLastBackupLabel(); loadLastFrontendBackupLabel(); }
   if (name === 'planner') { loadPlannerWeek(); }
@@ -1337,6 +1400,7 @@ function showPage(name, el) {
   if (name === 'upload') { loadSubjectsForUpload(); }
   if (name === 'quiz') { loadSubjectsForQuiz(); }
   if (name === 'flashcards') { loadFlashcardSubjects(); }
+  if (name === 'tutor') { loadTutorSubjects(); }
 }
 
 function updateTime() {
@@ -2462,7 +2526,96 @@ setTimeout(async () => {
 
 setInterval(checkForNewFiles, 30000);
 
-// Clear badge when navigating to that page
+// ===== TUTOR =====
+let tutorCurrentSubject = null;
+
+async function loadTutorSubjects() {
+  const list = document.getElementById('tutorSubjectList');
+  try {
+    const data = await fetch(API + '/api/subjects').then(r => r.json());
+    const subjects = (data.subjects || []).filter(s => s !== '.git');
+    if (!subjects.length) {
+      list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text3);">Ingen fag endnu — upload en PDF først.</div>';
+      return;
+    }
+    list.innerHTML = subjects.map(s =>
+      `<div class="tutor-subject-item ${tutorCurrentSubject === s ? 'active' : ''}" onclick="selectTutorSubject('${s}', this)">${s}</div>`
+    ).join('');
+  } catch {
+    list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--red);">Kunne ikke hente fag</div>';
+  }
+}
+
+function selectTutorSubject(subject, el) {
+  document.querySelectorAll('.tutor-subject-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  tutorCurrentSubject = subject;
+  document.getElementById('tutorSelectedSubject').textContent = 'Fag: ' + subject;
+}
+
+function parseTutorFeedback(text) {
+  // Parse KORREKT / MISSET / UDDYBNING sections
+  const sections = [
+    { key: 'KORREKT', icon: '✓', color: 'var(--green)' },
+    { key: 'MISSET',  icon: '✗', color: 'var(--red)' },
+    { key: 'UDDYBNING', icon: '💡', color: 'var(--blue)' },
+  ];
+
+  let html = '';
+  for (const s of sections) {
+    const regex = new RegExp(`###?\\s*${s.key}[:\\s]*([\\s\\S]*?)(?=###?\\s*(KORREKT|MISSET|UDDYBNING)|$)`, 'i');
+    const match = text.match(regex);
+    if (match) {
+      const body = match[1].trim();
+      const bodyHtml = marked.parse(body);
+      html += `<div class="tutor-section">
+        <div class="tutor-section-title" style="color:${s.color}">${s.icon} ${s.key}</div>
+        <div class="tutor-section-body">${bodyHtml}</div>
+      </div>`;
+    }
+  }
+  // Fallback: if no sections found, just render markdown
+  if (!html) html = `<div class="tutor-section-body">${marked.parse(text)}</div>`;
+  return html;
+}
+
+async function submitTutor() {
+  if (!tutorCurrentSubject) { showNotif('Vælg et fag', 'Klik på et fag i sidepanelet'); return; }
+  const concept = document.getElementById('tutorConcept').value.trim();
+  const explanation = document.getElementById('tutorExplanation').value.trim();
+  if (!concept) { showNotif('Mangler koncept', 'Skriv hvilket koncept du vil forklare'); return; }
+  if (explanation.length < 20) { showNotif('For kort', 'Skriv en lidt mere uddybende forklaring'); return; }
+
+  const btn = document.getElementById('tutorSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Analyserer...';
+
+  const feedbackDiv = document.getElementById('tutorFeedback');
+  const feedbackContent = document.getElementById('tutorFeedbackContent');
+  feedbackDiv.style.display = 'block';
+  feedbackContent.innerHTML = '<div class="tutor-thinking"><span style="animation:spin 1s linear infinite;display:inline-block;">⏳</span> Tutor læser dine noter og analyserer din forklaring...</div>';
+
+  try {
+    const resp = await fetch(API + '/api/tutor', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ subject: tutorCurrentSubject, concept, explanation })
+    });
+    const data = await resp.json();
+    if (data.feedback) {
+      feedbackContent.innerHTML = parseTutorFeedback(data.feedback);
+    } else {
+      feedbackContent.innerHTML = '<div style="color:var(--red);">Ingen feedback modtaget — prøv igen.</div>';
+    }
+  } catch {
+    feedbackContent.innerHTML = '<div style="color:var(--red);">Fejl — tjek at API kører.</div>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🎓 Få feedback';
+  feedbackDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// badge + tutor below
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', function() {
     const page = this.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
