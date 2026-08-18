@@ -758,6 +758,7 @@
   .empty-sub { font-size: 13px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
 .library-content table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
 .library-content th { background:var(--surface3); color:var(--text2); padding:8px 12px; text-align:left; border:1px solid var(--border2); font-weight:600; }
@@ -839,6 +840,8 @@
 .tutor-section-body li { margin-bottom:4px; }
 .tutor-thinking { display:flex; align-items:center; gap:10px; color:var(--text3); font-size:13px; font-style:italic; padding:20px 0; }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+.mermaid-diagram { margin:20px 0; padding:20px; background:var(--surface2); border:1px solid var(--border2); border-radius:10px; text-align:center; overflow-x:auto; }
+.mermaid-diagram svg { max-width:100%; height:auto; }
 
 </style>
 </head>
@@ -1931,6 +1934,7 @@ async function loadNote(subject, filename, el) {
     lc.innerHTML = renderMarkdown(md);
     lc.setAttribute('data-raw', md);
     lc.style.display = 'block';
+    renderMermaidDiagrams(lc);
     // Show toolbar
     const toolbar = document.getElementById('libraryToolbar');
     if (toolbar) {
@@ -1940,6 +1944,52 @@ async function loadNote(subject, filename, el) {
     }
   } catch {
     document.getElementById('libraryContent').innerHTML = '<div style="color:var(--text3);">Kunne ikke indlæse noten.</div>';
+  }
+}
+
+// Initialize Mermaid once with dark theme matching dashboard
+let _mermaidInit = false;
+function initMermaid() {
+  if (_mermaidInit || typeof mermaid === 'undefined') return;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    themeVariables: {
+      background: '#141416',
+      primaryColor: '#1c1c1f',
+      primaryTextColor: '#f0efe8',
+      primaryBorderColor: '#e85221',
+      lineColor: '#9e9d96',
+      secondaryColor: '#242428',
+      tertiaryColor: '#1c1c1f',
+      fontSize: '14px',
+    },
+    securityLevel: 'loose',
+  });
+  _mermaidInit = true;
+}
+
+// Find ```mermaid code blocks (rendered by marked as <pre><code class="language-mermaid">)
+// and replace them with rendered SVG diagrams
+async function renderMermaidDiagrams(container) {
+  if (typeof mermaid === 'undefined') return;
+  initMermaid();
+  const blocks = container.querySelectorAll('code.language-mermaid, code.lang-mermaid');
+  let i = 0;
+  for (const block of blocks) {
+    const pre = block.closest('pre') || block;
+    const code = block.textContent;
+    const id = 'mermaid-' + Date.now() + '-' + (i++);
+    try {
+      const { svg } = await mermaid.render(id, code);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mermaid-diagram';
+      wrapper.innerHTML = svg;
+      pre.replaceWith(wrapper);
+    } catch (e) {
+      // If diagram fails to parse, leave the code block as-is
+      pre.style.borderLeft = '3px solid var(--red)';
+    }
   }
 }
 
